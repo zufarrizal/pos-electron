@@ -1,3 +1,21 @@
 node_modules/
 dist/
 *.log
+
+# Build outputs
+release/
+out/
+*.blockmap
+*.exe
+*.AppImage
+*.dmg
+
+# Electron builder caches/config
+.cache/
+.electron-builder/
+builder-debug.yml
+
+# Local database files
+*.sqlite
+*.sqlite3
+pos.sqlite

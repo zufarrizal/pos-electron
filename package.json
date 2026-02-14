@@ -6,7 +6,8 @@
   "scripts": {
     "start": "electron .",
     "rebuild": "electron-rebuild -f -w better-sqlite3",
-    "postinstall": "npm run rebuild"
+    "postinstall": "npm run rebuild",
+    "dist": "electron-builder --win"
   },
   "keywords": [
     "electron",
@@ -18,10 +19,30 @@
   "license": "ISC",
   "dependencies": {
     "better-sqlite3": "^12.6.2",
-    "electron": "^40.4.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@electron/rebuild": "^4.0.3"
+    "@electron/rebuild": "^4.0.3",
+    "electron": "40.4.1",
+    "electron-builder": "^26.7.0"
+  },
+  "build": {
+    "appId": "com.poskasir.electron",
+    "productName": "POS Kasir",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "src/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "POS-Kasir-Setup-${version}.${ext}"
+    }
   }
 }
