@@ -518,6 +518,14 @@ td button {
   outline-offset: -1px;
 }
 
+[data-theme="dark"] .product-picker-list .picker-item:hover {
+  background: #162033;
+}
+
+[data-theme="dark"] .product-picker-list .picker-item:focus-visible {
+  outline-color: #334155;
+}
+
 .helper-text {
   color: var(--muted);
   margin-top: 8px;
