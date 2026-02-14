@@ -29,7 +29,10 @@ const state = {
   salesFilter: { type: "all", date: "", month: "" },
   appConfig: { appName: "POS Kasir", appDescription: "Electron + SQL" },
   dashboardTrendMode: "weekly",
-  dashboardBestLimit: 10
+  dashboardBestLimit: 10,
+  dashboardBestMode: "monthly",
+  transactionRecoMode: "monthly",
+  transactionRecoLimit: 4
 };
 
 const money = new Intl.NumberFormat("id-ID", {
@@ -107,7 +110,6 @@ function applyRoleUI() {
     switchTab("panel-produk");
   }
 
-  $("#reset-admin-password-btn").style.display = visible ? "" : "none";
 }
 
 function showLogin() {
@@ -115,14 +117,17 @@ function showLogin() {
   refs.appHeader.style.display = "none";
   refs.appMain.style.display = "none";
   if (refs.loginShortcutActions) refs.loginShortcutActions.style.display = "none";
+  setTimeout(() => {
+    $("#login-username")?.focus();
+  }, 0);
 }
 
 async function updateFullscreenButton() {
   try {
     const fs = await window.posApi.getFullscreen();
-    $("#fullscreen-btn").textContent = fs ? "🗗 Normal" : "🖥 Layar";
+    $("#fullscreen-btn").textContent = fs ? "🗗 Jendela" : "🖥 Layar Penuh";
   } catch {
-    $("#fullscreen-btn").textContent = "🖥 Layar";
+    $("#fullscreen-btn").textContent = "🖥 Layar Penuh";
   }
 }
 
@@ -130,7 +135,8 @@ function showApp() {
   refs.loginScreen.style.display = "none";
   refs.appHeader.style.display = "";
   refs.appMain.style.display = "";
-  $("#current-user-text").textContent = `Login: ${state.currentUser.username} (${state.currentUser.role})`;
+  const roleLabel = state.currentUser.role === "admin" ? "admin" : "pengguna";
+  $("#current-user-text").textContent = `Masuk: ${state.currentUser.username} (${roleLabel})`;
   applyRoleUI();
   updateFullscreenButton();
 }

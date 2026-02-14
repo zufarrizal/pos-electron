@@ -2,6 +2,7 @@
 import {
   renderProductsTable,
   renderProductPicker,
+  renderTransactionRecommendations,
   renderSalesSummary,
   renderSalesTable,
   renderUsersTable,
@@ -21,6 +22,14 @@ async function reloadSales() {
   renderSalesSummary(r.summary);
 }
 
+async function reloadRecommendations() {
+  const rows = await window.posApi.getProductRecommendations({
+    mode: state.transactionRecoMode,
+    limit: state.transactionRecoLimit
+  });
+  renderTransactionRecommendations(rows || []);
+}
+
 async function reloadUsers() {
   if (!isAdmin()) return;
   state.users = await window.posApi.listUsers();
@@ -29,7 +38,13 @@ async function reloadUsers() {
 
 async function reloadDashboard() {
   if (!isAdmin()) return;
-  renderDashboard(await window.posApi.getDashboard({ trendMode: state.dashboardTrendMode, topLimit: state.dashboardBestLimit }));
+  renderDashboard(
+    await window.posApi.getDashboard({
+      trendMode: state.dashboardTrendMode,
+      topLimit: state.dashboardBestLimit,
+      bestMode: state.dashboardBestMode
+    })
+  );
 }
 
 async function reloadAll() {
@@ -38,6 +53,7 @@ async function reloadAll() {
   await reloadDashboard();
   await reloadProducts();
   await reloadSales();
+  await reloadRecommendations();
   await reloadUsers();
   renderCart();
 }
@@ -64,6 +80,7 @@ async function confirmDialog(message, options = {}) {
 export {
   reloadProducts,
   reloadSales,
+  reloadRecommendations,
   reloadUsers,
   reloadDashboard,
   reloadAll,

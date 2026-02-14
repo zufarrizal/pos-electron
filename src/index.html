@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="id">
   <head>
     <meta charset="UTF-8" />
@@ -9,21 +9,21 @@
   <body>
     <section id="login-screen" class="auth-wrap">
       <div class="auth-card">
-        <h1>POS Kasir Login</h1>
-        <p>Masuk sebagai admin atau user</p>
+        <h1>POS Kasir Masuk</h1>
+        <p>Masuk sebagai admin atau pengguna</p>
         <form id="login-form" class="auth-form">
           <label>
-            Username
-            <input id="login-username" autocomplete="username" required />
+            Nama Pengguna
+            <input id="login-username" autocomplete="username" autofocus required />
           </label>
           <label>
-            Password
+            Kata Sandi
             <input id="login-password" type="password" autocomplete="current-password" required />
           </label>
-          <button type="submit">🔐 Login</button>
+          <button type="submit">&#128274; Masuk</button>
         </form>
         <div id="login-shortcut-actions" style="display:none; margin-top:8px;">
-          <button id="login-reset-admin-btn" type="button" class="secondary">🔁 Reset Admin</button>
+          <button id="login-reset-admin-btn" type="button" class="secondary">&#128257; Atur Ulang Admin</button>
         </div>
         <div id="login-error" class="error-box" style="display:none"></div>
       </div>
@@ -36,38 +36,35 @@
       </div>
       <div class="session-box">
         <span id="current-user-text"></span>
-        <button id="fullscreen-btn" class="secondary">🖥 Layar</button>
-        <button id="reset-admin-password-btn" class="secondary admin-only" style="display:none">
-          🔁 Reset
-        </button>
-        <button id="logout-btn" class="secondary">🚪 Keluar</button>
+        <button id="fullscreen-btn" class="secondary">&#128421; Layar Penuh</button>
+        <button id="logout-btn" class="secondary">&#128682; Keluar</button>
       </div>
     </header>
 
     <main id="app-main" class="layout" style="display:none">
       <div class="tabs" role="tablist" aria-label="Menu POS">
         <button class="tab-btn admin-only" data-tab-target="panel-dashboard" role="tab" style="display:none">
-          📊 Dash
+          &#128202; Dasbor
         </button>
         <button class="tab-btn active" data-tab-target="panel-produk" role="tab">
-          📦 Produk
+          &#128230; Produk
         </button>
         <button class="tab-btn" data-tab-target="panel-transaksi" role="tab">
-          🧾 Trans
+          &#129534; Transaksi
         </button>
         <button class="tab-btn" data-tab-target="panel-riwayat" role="tab">
-          🕘 Riwayat
+          &#128344; Riwayat
         </button>
         <button class="tab-btn admin-only" data-tab-target="panel-users" role="tab" style="display:none">
-          👥 User
+          &#128101; Pengguna
         </button>
         <button class="tab-btn admin-only" data-tab-target="panel-settings" role="tab" style="display:none">
-          ⚙ Set
+          &#9881; Pengaturan
         </button>
       </div>
 
       <section id="panel-dashboard" class="card tab-panel admin-only" role="tabpanel" style="display:none">
-        <h2>Dashboard Admin</h2>
+        <h2>Dasbor Admin</h2>
         <div class="dashboard-grid">
           <div class="dash-card">
             <span>Total Transaksi</span>
@@ -97,7 +94,7 @@
             <small>Bulanan</small>
           </div>
           <div class="dash-card">
-            <span>Total User</span>
+            <span>Total Pengguna</span>
             <strong id="dash-total-users">0</strong>
             <small>Semua user terdaftar</small>
           </div>
@@ -123,14 +120,22 @@
         <svg id="dashboard-chart" class="dashboard-chart" viewBox="0 0 800 280" preserveAspectRatio="none"></svg>
 
         <div class="dashboard-chart-head" style="margin-top:12px">
-          <h3>Best Produk Terlaris</h3>
-          <select id="dashboard-best-limit">
-            <option value="5">Top 5</option>
-            <option value="10" selected>Top 10</option>
-            <option value="20">Top 20</option>
-            <option value="50">Top 50</option>
-            <option value="100">Top 100</option>
-          </select>
+          <h3>Produk Terlaris</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="dashboard-best-mode">
+              <option value="daily">Harian</option>
+              <option value="weekly">Mingguan</option>
+              <option value="monthly" selected>Bulanan</option>
+              <option value="yearly">Tahunan</option>
+            </select>
+            <select id="dashboard-best-limit">
+              <option value="5">5 Teratas</option>
+              <option value="10" selected>10 Teratas</option>
+              <option value="20">20 Teratas</option>
+              <option value="50">50 Teratas</option>
+              <option value="100">100 Teratas</option>
+            </select>
+          </div>
         </div>
         <table id="dashboard-best-table">
           <thead>
@@ -167,8 +172,8 @@
             <input id="stock" type="number" min="0" step="1" required />
           </label>
           <div class="form-actions">
-            <button type="submit" id="save-product">💾 Simpan</button>
-            <button type="button" id="cancel-edit" class="secondary">✖ Batal</button>
+            <button type="submit" id="save-product">&#128190; Simpan</button>
+            <button type="button" id="cancel-edit" class="secondary">&#10006; Batal</button>
           </div>
         </form>
 
@@ -193,6 +198,25 @@
       <section id="panel-transaksi" class="card tab-panel" role="tabpanel">
         <h2>Transaksi</h2>
         <div id="transaction-error" class="error-box" style="display:none"></div>
+        <div class="dashboard-chart-head" style="margin-top:0">
+          <h3>Rekomendasi Produk</h3>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <select id="transaction-reco-mode">
+              <option value="daily">Harian</option>
+              <option value="weekly">Mingguan</option>
+              <option value="monthly" selected>Bulanan</option>
+              <option value="yearly">Tahunan</option>
+            </select>
+            <select id="transaction-reco-limit">
+              <option value="4" selected>4 Teratas</option>
+              <option value="8">8 Teratas</option>
+              <option value="12">12 Teratas</option>
+              <option value="16">16 Teratas</option>
+              <option value="20">20 Teratas</option>
+            </select>
+          </div>
+        </div>
+        <div id="transaction-recommendations" class="transaction-reco-list"></div>
         <div class="cashier-controls">
           <input
             id="product-search"
@@ -201,7 +225,7 @@
           />
           <datalist id="product-options"></datalist>
           <input id="qty-input" type="number" min="1" step="1" value="1" />
-          <button id="add-cart">➕ Tambah</button>
+          <button id="add-cart">&#10133; Tambah</button>
         </div>
         <div id="product-picker-list" class="product-picker-list"></div>
         <div id="selected-product" class="helper-text"></div>
@@ -214,7 +238,7 @@
                 <th>Harga</th>
                 <th>Qty</th>
                 <th>Subtotal</th>
-                <th></th>
+                <th>Aksi</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -235,10 +259,12 @@
             Bayar
             <input id="payment-input" type="number" min="0" step="1" placeholder="Masukkan nominal bayar" />
           </label>
-          <button id="cancel-sale-edit" type="button" class="secondary" style="display:none">
-            ↩ Batal
-          </button>
-          <button id="checkout">💳 Checkout</button>
+          <div class="summary-actions">
+            <button id="cancel-sale-edit" type="button" class="secondary" style="display:none">
+              &#8617; Batal
+            </button>
+            <button id="checkout">&#128179; Bayar</button>
+          </div>
         </div>
 
         <div id="result-box" class="result-box"></div>
@@ -256,9 +282,9 @@
           </select>
           <input id="history-filter-date" type="date" />
           <input id="history-filter-month" type="month" style="display:none" />
-          <button id="apply-history-filter" class="secondary">🔎 Terapkan</button>
-          <button id="reset-history-filter" class="secondary">🔄 Reset</button>
-          <button id="export-history-excel">📥 Excel</button>
+          <button id="apply-history-filter" class="secondary">&#128269; Terapkan</button>
+          <button id="reset-history-filter" class="secondary">&#128260; Atur Ulang</button>
+          <button id="export-history-excel">&#128229; Excel</button>
         </div>
         <div id="history-summary" class="history-summary"></div>
         <div class="table-wrap">
@@ -280,17 +306,17 @@
       </section>
 
       <section id="panel-users" class="card tab-panel admin-only" role="tabpanel" style="display:none">
-        <h2>Manajemen Users</h2>
+        <h2>Manajemen Pengguna</h2>
         <form id="user-form" class="form-grid">
           <input type="hidden" id="user-id" />
           <label>
-            Username
+            Nama Pengguna
             <input id="user-username" required />
           </label>
           <label>
-            Role
+            Peran
             <select id="user-role">
-              <option value="user">user</option>
+              <option value="user">pengguna</option>
               <option value="admin">admin</option>
             </select>
           </label>
@@ -299,8 +325,8 @@
             <input id="user-password" type="password" placeholder="Kosongkan jika tidak diubah saat edit" />
           </label>
           <div class="form-actions">
-            <button type="submit">💾 Simpan</button>
-            <button type="button" id="cancel-user-edit" class="secondary">✖ Batal</button>
+            <button type="submit">&#128190; Simpan</button>
+            <button type="button" id="cancel-user-edit" class="secondary">&#10006; Batal</button>
           </div>
         </form>
 
@@ -308,8 +334,8 @@
           <table id="users-table">
             <thead>
               <tr>
-                <th>Username</th>
-                <th>Role</th>
+                <th>Nama Pengguna</th>
+                <th>Peran</th>
                 <th>Dibuat</th>
                 <th>Aksi</th>
               </tr>
@@ -331,7 +357,7 @@
             <input id="app-config-description" required />
           </label>
           <div class="form-actions">
-            <button type="submit">💾 Simpan</button>
+            <button type="submit">&#128190; Simpan</button>
           </div>
         </form>
       </section>
@@ -342,8 +368,8 @@
         <h3 id="confirm-title">Konfirmasi</h3>
         <p id="confirm-message"></p>
         <div class="confirm-actions">
-          <button id="confirm-cancel" class="secondary">✖ Batal</button>
-          <button id="confirm-ok" class="danger">🗑 Hapus</button>
+          <button id="confirm-cancel" class="secondary">&#10006; Batal</button>
+          <button id="confirm-ok" class="danger">&#128465; Hapus</button>
         </div>
       </div>
     </div>
@@ -352,3 +378,4 @@
     <script type="module" src="./renderer.js"></script>
   </body>
 </html>
+

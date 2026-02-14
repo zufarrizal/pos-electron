@@ -346,6 +346,53 @@ function getProducts() {
     .all();
 }
 
+function getProductRecommendations(options = {}) {
+  const mode =
+    options.mode === "daily"
+      ? "daily"
+      : options.mode === "weekly"
+        ? "weekly"
+        : options.mode === "yearly"
+          ? "yearly"
+          : "monthly";
+  const rawLimit = Number(options.limit || 4);
+  const allowedLimits = new Set([4, 8, 12, 16, 20]);
+  const limit = allowedLimits.has(rawLimit) ? rawLimit : 4;
+
+  let salesFilterSql = "1=1";
+  if (mode === "daily") {
+    salesFilterSql = "date(datetime(s.created_at, 'localtime')) = date('now', 'localtime')";
+  } else if (mode === "weekly") {
+    salesFilterSql = "datetime(s.created_at, 'localtime') >= datetime('now', 'localtime', '-6 days', 'start of day')";
+  } else if (mode === "monthly") {
+    salesFilterSql = "strftime('%Y-%m', datetime(s.created_at, 'localtime')) = strftime('%Y-%m', 'now', 'localtime')";
+  } else if (mode === "yearly") {
+    salesFilterSql = "strftime('%Y', datetime(s.created_at, 'localtime')) = strftime('%Y', 'now', 'localtime')";
+  }
+
+  return database
+    .prepare(
+      `
+      SELECT
+        p.id,
+        p.sku,
+        p.name,
+        p.price,
+        p.stock,
+        COALESCE(SUM(CASE WHEN s.id IS NOT NULL THEN si.qty ELSE 0 END),0) AS totalQty,
+        COALESCE(SUM(CASE WHEN s.id IS NOT NULL THEN si.subtotal ELSE 0 END),0) AS totalRevenue
+      FROM products p
+      LEFT JOIN sale_items si ON si.product_id = p.id
+      LEFT JOIN sales s ON s.id = si.sale_id AND ${salesFilterSql}
+      WHERE p.stock > 0
+      GROUP BY p.id, p.sku, p.name, p.price, p.stock
+      ORDER BY totalQty DESC, totalRevenue DESC, p.stock DESC, p.name ASC
+      LIMIT ?
+      `
+    )
+    .all(limit);
+}
+
 function createProduct(payload) {
   const sku = String(payload.sku || "").trim();
   const name = String(payload.name || "").trim();
@@ -807,6 +854,14 @@ function getDashboardData(options = {}) {
   const rawTopLimit = Number(options.topLimit || 10);
   const allowedLimits = new Set([5, 10, 20, 50, 100]);
   const topLimit = allowedLimits.has(rawTopLimit) ? rawTopLimit : 10;
+  const bestMode =
+    options.bestMode === "daily"
+      ? "daily"
+      : options.bestMode === "weekly"
+        ? "weekly"
+        : options.bestMode === "yearly"
+          ? "yearly"
+          : "monthly";
 
   const txDaily = database
     .prepare(
@@ -956,6 +1011,17 @@ function getDashboardData(options = {}) {
     }
   }
 
+  let bestWhereSql = "1=1";
+  if (bestMode === "daily") {
+    bestWhereSql = "date(datetime(s.created_at, 'localtime')) = date('now', 'localtime')";
+  } else if (bestMode === "weekly") {
+    bestWhereSql = "datetime(s.created_at, 'localtime') >= datetime('now', 'localtime', '-6 days', 'start of day')";
+  } else if (bestMode === "monthly") {
+    bestWhereSql = "strftime('%Y-%m', datetime(s.created_at, 'localtime')) = strftime('%Y-%m', 'now', 'localtime')";
+  } else if (bestMode === "yearly") {
+    bestWhereSql = "strftime('%Y', datetime(s.created_at, 'localtime')) = strftime('%Y', 'now', 'localtime')";
+  }
+
   const bestProducts = database
     .prepare(
       `
@@ -965,6 +1031,8 @@ function getDashboardData(options = {}) {
         COALESCE(SUM(si.qty),0) AS totalQty,
         COALESCE(SUM(si.subtotal),0) AS totalRevenue
       FROM sale_items si
+      JOIN sales s ON s.id = si.sale_id
+      WHERE ${bestWhereSql}
       GROUP BY si.product_id, si.name
       ORDER BY totalQty DESC, totalRevenue DESC, si.name ASC
       LIMIT ?
@@ -983,6 +1051,7 @@ function getDashboardData(options = {}) {
       productsEmpty: totalProductsEmpty
     },
     trend,
+    bestMode,
     bestProducts
   };
 }
@@ -998,6 +1067,7 @@ module.exports = {
   updateUser,
   deleteUser,
   getProducts,
+  getProductRecommendations,
   createProduct,
   updateProduct,
   deleteProduct,

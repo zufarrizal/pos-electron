@@ -15,6 +15,7 @@ import {
 import {
   reloadProducts,
   reloadSales,
+  reloadRecommendations,
   reloadUsers,
   reloadDashboard,
   reloadAll,
@@ -29,6 +30,34 @@ function isResetAdminShortcut(event) {
 }
 
 function bindEvents() {
+  const addProductToCart = (product, qtyToAdd = 1) => {
+    clearErr("transaction");
+    const qty = Number(qtyToAdd || 0);
+    if (!product || !Number.isInteger(qty) || qty <= 0) {
+      const m = "Pilih produk dan qty valid.";
+      showErr("transaction", m);
+      toastMsg(m);
+      return false;
+    }
+
+    const currentQty = state.cart
+      .filter((x) => x.productId === product.id)
+      .reduce((s, x) => s + x.qty, 0);
+    const allowedStock = product.stock + Number(state.editBaseQtyByProduct[product.id] || 0);
+    if (currentQty + qty > allowedStock) {
+      const m = `Stok ${product.name} tidak mencukupi.`;
+      showErr("transaction", m);
+      toastMsg(m);
+      return false;
+    }
+
+    const ex = state.cart.find((x) => x.productId === product.id);
+    if (ex) ex.qty += qty;
+    else state.cart.push({ productId: product.id, name: product.name, price: product.price, qty });
+    renderCart();
+    return true;
+  };
+
   refs.loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearErr("login");
@@ -41,9 +70,9 @@ function bindEvents() {
       showApp();
       switchTab(isAdmin() ? "panel-dashboard" : "panel-produk");
       await reloadAll();
-      toastMsg("Login berhasil.");
+      toastMsg("Masuk berhasil.");
     } catch (error) {
-      const m = friendlyError(error, "Login gagal.");
+      const m = friendlyError(error, "Masuk gagal.");
       showErr("login", m);
       toastMsg(m);
     }
@@ -61,9 +90,9 @@ function bindEvents() {
   });
 
   refs.loginResetAdminBtn?.addEventListener("click", async () => {
-    const ok = await confirmDialog("Reset password ADMIN menjadi 7890?", {
-      title: "Reset",
-      okText: "🔁 Reset",
+    const ok = await confirmDialog("Atur ulang kata sandi ADMIN menjadi 7890?", {
+      title: "Atur Ulang",
+      okText: "🔁 Atur Ulang",
       cancelText: "✖ Batal"
     });
     if (!ok) return;
@@ -92,20 +121,9 @@ function bindEvents() {
   $("#fullscreen-btn").addEventListener("click", async () => {
     try {
       const fs = await window.posApi.toggleFullscreen();
-      $("#fullscreen-btn").textContent = fs ? "🗗 Normal" : "🖥 Layar";
+      $("#fullscreen-btn").textContent = fs ? "🗗 Jendela" : "🖥 Layar Penuh";
     } catch (e) {
-      toastMsg(friendlyError(e, "Gagal fullscreen."));
-    }
-  });
-
-  $("#reset-admin-password-btn").addEventListener("click", async () => {
-    const ok = await confirmDialog("Reset password ADMIN menjadi 7890?", { title: "Reset", okText: "🔁 Reset", cancelText: "✖ Batal" });
-    if (!ok) return;
-    try {
-      await window.posApi.resetAdminPassword();
-      toastMsg("Password ADMIN direset.");
-    } catch (e) {
-      toastMsg(friendlyError(e, "Gagal reset."));
+      toastMsg(friendlyError(e, "Gagal mode layar penuh."));
     }
   });
 
@@ -184,46 +202,83 @@ function bindEvents() {
     if (!b) return;
     const p = state.products.find((x) => x.id === Number(b.dataset.productId));
     if (!p) return;
+    const ok = addProductToCart(p, 1);
+    if (!ok) return;
     $("#product-search").value = p.sku;
-    $("#selected-product").textContent = `Dipilih: ${p.sku} | ${p.name} | ${money.format(p.price)} | stok ${p.stock}`;
+    $("#selected-product").textContent = `Ditambahkan: ${p.sku} | ${p.name} | ${money.format(p.price)} | stok ${p.stock}`;
+  });
+
+  $("#transaction-recommendations").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-reco-sku]");
+    if (!btn) return;
+    const sku = String(btn.dataset.recoSku || "");
+    if (!sku) return;
+    const p = findProductBySearch(sku);
+    if (!p) return;
+    const ok = addProductToCart(p, 1);
+    if (!ok) return;
+    $("#product-search").value = sku;
+    $("#selected-product").textContent = `Ditambahkan: ${p.sku} | ${p.name} | ${money.format(p.price)} | stok ${p.stock}`;
+  });
+
+  $("#transaction-reco-mode").addEventListener("change", async () => {
+    state.transactionRecoMode = $("#transaction-reco-mode").value || "monthly";
+    await reloadRecommendations();
+  });
+
+  $("#transaction-reco-limit").addEventListener("change", async () => {
+    state.transactionRecoLimit = Number($("#transaction-reco-limit").value || 4);
+    await reloadRecommendations();
   });
 
   $("#add-cart").addEventListener("click", () => {
-    clearErr("transaction");
     const p = findProductBySearch($("#product-search").value);
     const qty = Number($("#qty-input").value || 0);
-
-    if (!p || !Number.isInteger(qty) || qty <= 0) {
-      const m = "Pilih produk dan qty valid.";
-      showErr("transaction", m);
-      toastMsg(m);
-      return;
-    }
-
-    const currentQty = state.cart.filter((x) => x.productId === p.id).reduce((s, x) => s + x.qty, 0);
-    const allowedStock = p.stock + Number(state.editBaseQtyByProduct[p.id] || 0);
-    if (currentQty + qty > allowedStock) {
-      const m = `Stok ${p.name} tidak mencukupi.`;
-      showErr("transaction", m);
-      toastMsg(m);
-      return;
-    }
-
-    const ex = state.cart.find((x) => x.productId === p.id);
-    if (ex) ex.qty += qty;
-    else state.cart.push({ productId: p.id, name: p.name, price: p.price, qty });
+    const ok = addProductToCart(p, qty);
+    if (!ok) return;
 
     $("#qty-input").value = "1";
     $("#product-search").value = "";
     $("#selected-product").textContent = "";
     renderProductPicker();
-    renderCart();
   });
 
   $("#cart-table tbody").addEventListener("click", (e) => {
     const b = e.target.closest("button[data-remove]");
     if (!b) return;
     state.cart = state.cart.filter((x) => x.productId !== Number(b.dataset.remove));
+    renderCart();
+  });
+
+  $("#cart-table tbody").addEventListener("change", (e) => {
+    const input = e.target.closest("input[data-qty-product-id]");
+    if (!input) return;
+    clearErr("transaction");
+
+    const productId = Number(input.dataset.qtyProductId || 0);
+    const newQty = Number(input.value || 0);
+    const item = state.cart.find((x) => x.productId === productId);
+    const product = state.products.find((x) => x.id === productId);
+    if (!item || !product) return;
+
+    if (!Number.isInteger(newQty) || newQty <= 0) {
+      input.value = String(item.qty);
+      const m = "Qty harus angka minimal 1.";
+      showErr("transaction", m);
+      toastMsg(m);
+      return;
+    }
+
+    const allowedStock = product.stock + Number(state.editBaseQtyByProduct[productId] || 0);
+    if (newQty > allowedStock) {
+      input.value = String(item.qty);
+      const m = `Stok ${product.name} tidak mencukupi.`;
+      showErr("transaction", m);
+      toastMsg(m);
+      return;
+    }
+
+    item.qty = newQty;
     renderCart();
   });
 
@@ -240,7 +295,7 @@ function bindEvents() {
 
       $("#result-box").style.display = "block";
       const methodLabel = paymentMethod === "qris" ? "QRIS" : "Tunai";
-      $("#result-box").innerHTML = `<strong>${state.editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Metode: ${methodLabel}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}<br><button type="button" class="secondary" data-result-action="print" data-sale-id="${result.saleId}">🖨 Print</button>`;
+      $("#result-box").innerHTML = `<strong>${state.editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Metode: ${methodLabel}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}<br><button type="button" class="secondary" data-result-action="print" data-sale-id="${result.saleId}">🖨 Cetak</button>`;
 
       state.cart = [];
       $("#payment-input").value = "";
@@ -248,6 +303,7 @@ function bindEvents() {
       renderCart();
       await reloadProducts();
       await reloadSales();
+      await reloadRecommendations();
     } catch (error) {
       const m = friendlyError(error, "Simpan transaksi gagal.");
       showErr("transaction", m);
@@ -345,6 +401,7 @@ function bindEvents() {
       if (!ok) return;
       await window.posApi.finalizeSale(saleId);
       await reloadSales();
+      await reloadRecommendations();
       toastMsg("Transaksi selesai.");
       return;
     }
@@ -355,6 +412,7 @@ function bindEvents() {
       await window.posApi.deleteSale(saleId);
       await reloadProducts();
       await reloadSales();
+      await reloadRecommendations();
       toastMsg("Riwayat transaksi dihapus.");
       return;
     }
@@ -366,7 +424,7 @@ function bindEvents() {
         state.editingSaleId = sale.id;
         $("#checkout").textContent = "💾 Simpan";
         $("#cancel-sale-edit").style.display = "block";
-        $("#sale-mode").textContent = `Mode edit: ${sale.invoiceNo}`;
+        $("#sale-mode").textContent = `Mode ubah: ${sale.invoiceNo}`;
         $("#payment-input").value = String(sale.payment);
         if (refs.paymentMethodInput) refs.paymentMethodInput.value = sale.paymentMethod || "tunai";
 
@@ -399,6 +457,11 @@ function bindEvents() {
     await reloadDashboard();
   });
 
+  $("#dashboard-best-mode").addEventListener("change", async () => {
+    state.dashboardBestMode = $("#dashboard-best-mode").value || "monthly";
+    await reloadDashboard();
+  });
+
   $("#user-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const payload = {
@@ -414,9 +477,9 @@ function bindEvents() {
       $("#user-form").reset();
       $("#user-id").value = "";
       await reloadUsers();
-      toastMsg("User disimpan.");
+      toastMsg("Pengguna disimpan.");
     } catch (error) {
-      toastMsg(friendlyError(error, "Gagal simpan user."));
+      toastMsg(friendlyError(error, "Gagal simpan pengguna."));
     }
   });
 
@@ -444,9 +507,9 @@ function bindEvents() {
     try {
       await window.posApi.deleteUser(user.id);
       await reloadUsers();
-      toastMsg("User dihapus.");
+      toastMsg("Pengguna dihapus.");
     } catch (error) {
-      toastMsg(friendlyError(error, "Gagal menghapus user."));
+      toastMsg(friendlyError(error, "Gagal menghapus pengguna."));
     }
   });
 

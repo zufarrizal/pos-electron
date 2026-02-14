@@ -172,6 +172,10 @@ ipcMain.handle("app:updateConfig", async (_event, payload) => {
 });
 
 ipcMain.handle("products:list", async () => db.getProducts());
+ipcMain.handle("products:recommendations", async (_event, options) => {
+  ensureLogin();
+  return db.getProductRecommendations(options || {});
+});
 ipcMain.handle("products:create", async (_event, payload) => {
   ensureLogin();
   return db.createProduct(payload || {});

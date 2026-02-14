@@ -9,7 +9,7 @@ function renderProductsTable() {
   $("#products-table tbody").innerHTML = rows
     .map((p) => `
     <tr><td>${p.sku}</td><td>${p.name}</td><td>${money.format(p.price)}</td><td>${p.stock}</td>
-      <td><button data-action="edit" data-id="${p.id}" class="secondary">✏ Edit</button>
+      <td><button data-action="edit" data-id="${p.id}" class="secondary">✏ Ubah</button>
       <button data-action="delete" data-id="${p.id}" class="danger">🗑 Hapus</button></td></tr>`)
     .join("");
 }
@@ -45,10 +45,28 @@ function findProductBySearch(v) {
 
 function renderCart() {
   $("#cart-table tbody").innerHTML = state.cart
-    .map((x) => `<tr><td>${x.name}</td><td>${money.format(x.price)}</td><td>${x.qty}</td><td>${money.format(x.price * x.qty)}</td><td><button class="danger" data-remove="${x.productId}">🗑 Hapus</button></td></tr>`)
+    .map((x) => `<tr><td>${x.name}</td><td>${money.format(x.price)}</td><td><input type="number" min="1" step="1" value="${x.qty}" data-qty-product-id="${x.productId}" class="cart-qty-input" /></td><td>${money.format(x.price * x.qty)}</td><td><button class="danger" data-remove="${x.productId}">🗑 Hapus</button></td></tr>`)
     .join("");
 
   $("#total-text").textContent = money.format(state.cart.reduce((s, x) => s + x.price * x.qty, 0));
+}
+
+function renderTransactionRecommendations(rows) {
+  const list = (rows || []).filter((p) => Number(p.stock || 0) > 0);
+  if (!list.length) {
+    $("#transaction-recommendations").innerHTML = `<div class="helper-text">Belum ada rekomendasi untuk periode ini.</div>`;
+    return;
+  }
+  $("#transaction-recommendations").innerHTML = list
+    .map((p, i) => `
+      <button type="button" class="reco-item" data-reco-sku="${p.sku}" title="Pilih produk ${p.name}">
+        <span class="reco-rank">#${i + 1}</span>
+        <span class="reco-main">${p.name}</span>
+        <span class="reco-meta">${p.sku} • ${money.format(p.price)}</span>
+        <span class="reco-stock">Stok ${p.stock}</span>
+      </button>
+    `)
+    .join("");
 }
 
 function renderSalesSummary(s) {
@@ -73,13 +91,13 @@ function renderSalesSummary(s) {
 function renderSalesTable(rows) {
   $("#sales-table tbody").innerHTML = rows
     .map((r) => {
-      const print = `<button data-sale-action="print" data-sale-id="${r.id}" class="secondary" title="Print">🖨</button>`;
+      const print = `<button data-sale-action="print" data-sale-id="${r.id}" class="secondary" title="Cetak">🖨</button>`;
       const status = r.isFinalized === 1
         ? `<span class="status-done" title="Selesai">✅</span>`
         : `<button data-sale-action="finalize" data-sale-id="${r.id}" title="Selesai">✅</button>`;
       const canEdit = isAdmin() || r.isFinalized !== 1;
       const edit = canEdit
-        ? `<button data-sale-action="edit" data-sale-id="${r.id}" class="secondary" title="Edit">✏</button>`
+        ? `<button data-sale-action="edit" data-sale-id="${r.id}" class="secondary" title="Ubah">✏</button>`
         : `<button class="secondary" disabled title="Terkunci">🔒</button>`;
       const del = isAdmin()
         ? `<button data-sale-action="delete" data-sale-id="${r.id}" class="danger" title="Hapus">🗑</button>`
@@ -94,7 +112,7 @@ function renderUsersTable() {
   if (!isAdmin()) return;
 
   $("#users-table tbody").innerHTML = state.users
-    .map((u) => `<tr><td>${u.username}</td><td>${u.role}</td><td>${new Date(`${u.createdAt}Z`).toLocaleString("id-ID")}</td><td><button data-user-action="edit" data-user-id="${u.id}" class="secondary">✏ Edit</button><button data-user-action="delete" data-user-id="${u.id}" class="danger">🗑 Hapus</button></td></tr>`)
+    .map((u) => `<tr><td>${u.username}</td><td>${u.role === "admin" ? "admin" : "pengguna"}</td><td>${new Date(`${u.createdAt}Z`).toLocaleString("id-ID")}</td><td><button data-user-action="edit" data-user-id="${u.id}" class="secondary">✏ Ubah</button><button data-user-action="delete" data-user-id="${u.id}" class="danger">🗑 Hapus</button></td></tr>`)
     .join("");
 }
 
@@ -159,6 +177,7 @@ export {
   renderProductPicker,
   findProductBySearch,
   renderCart,
+  renderTransactionRecommendations,
   renderSalesSummary,
   renderSalesTable,
   renderUsersTable,

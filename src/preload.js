@@ -11,6 +11,7 @@ contextBridge.exposeInMainWorld("posApi", {
   updateAppConfig: (payload) => ipcRenderer.invoke("app:updateConfig", payload),
 
   listProducts: () => ipcRenderer.invoke("products:list"),
+  getProductRecommendations: (options) => ipcRenderer.invoke("products:recommendations", options),
   createProduct: (payload) => ipcRenderer.invoke("products:create", payload),
   updateProduct: (payload) => ipcRenderer.invoke("products:update", payload),
   deleteProduct: (id) => ipcRenderer.invoke("products:delete", id),
