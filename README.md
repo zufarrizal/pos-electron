@@ -76,6 +76,11 @@ pos-electron/
 |   |-- db.js
 |   |-- preload.js
 |   |-- renderer.js
+|   |-- renderer_modules/
+|   |   |-- shared.js
+|   |   |-- render.js
+|   |   |-- services.js
+|   |   `-- events.js
 |   |-- index.html
 |   `-- styles.css
 `-- scripts/
@@ -132,3 +137,4 @@ npx electron scripts/reset_data_keep_users.js
 - Export Excel mengikuti filter riwayat yang aktif.
 - Riwayat transaksi default menampilkan data harian untuk performa lebih ringan.
 - Jika shortcut reset admin tidak muncul, pastikan fokus ada di jendela login lalu tekan `Ctrl + Shift + P` sekali lagi.
+- Frontend renderer memakai ES Module (`<script type="module">`) dan sudah dipisah per tanggung jawab agar lebih mudah maintenance.
