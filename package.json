@@ -1,0 +1,27 @@
+{
+  "name": "pos-electron",
+  "version": "1.0.0",
+  "description": "Aplikasi POS/Kasir berbasis Electron dan SQLite",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "npm run rebuild"
+  },
+  "keywords": [
+    "electron",
+    "sqlite",
+    "pos",
+    "kasir"
+  ],
+  "author": "Admin",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "electron": "^40.4.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3"
+  }
+}

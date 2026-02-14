@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>POS Kasir</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <section id="login-screen" class="auth-wrap">
+      <div class="auth-card">
+        <h1>POS Kasir Login</h1>
+        <p>Masuk sebagai admin atau user</p>
+        <form id="login-form" class="auth-form">
+          <label>
+            Username
+            <input id="login-username" autocomplete="username" required />
+          </label>
+          <label>
+            Password
+            <input id="login-password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">🔐 Login</button>
+        </form>
+        <div id="login-error" class="error-box" style="display:none"></div>
+      </div>
+    </section>
+
+    <header id="app-header" class="topbar" style="display:none">
+      <div>
+        <h1 id="app-title">POS Kasir</h1>
+        <p id="app-description">Electron + SQL</p>
+      </div>
+      <div class="session-box">
+        <span id="current-user-text"></span>
+        <button id="fullscreen-btn" class="secondary">🖥 Layar</button>
+        <button id="reset-admin-password-btn" class="secondary admin-only" style="display:none">
+          🔁 Reset
+        </button>
+        <button id="logout-btn" class="secondary">🚪 Keluar</button>
+      </div>
+    </header>
+
+    <main id="app-main" class="layout" style="display:none">
+      <div class="tabs" role="tablist" aria-label="Menu POS">
+        <button class="tab-btn admin-only" data-tab-target="panel-dashboard" role="tab" style="display:none">
+          📊 Dash
+        </button>
+        <button class="tab-btn active" data-tab-target="panel-produk" role="tab">
+          📦 Produk
+        </button>
+        <button class="tab-btn" data-tab-target="panel-transaksi" role="tab">
+          🧾 Trans
+        </button>
+        <button class="tab-btn" data-tab-target="panel-riwayat" role="tab">
+          🕘 Riwayat
+        </button>
+        <button class="tab-btn admin-only" data-tab-target="panel-users" role="tab" style="display:none">
+          👥 User
+        </button>
+        <button class="tab-btn admin-only" data-tab-target="panel-settings" role="tab" style="display:none">
+          ⚙ Set
+        </button>
+      </div>
+
+      <section id="panel-dashboard" class="card tab-panel admin-only" role="tabpanel" style="display:none">
+        <h2>Dashboard Admin</h2>
+        <div class="dashboard-grid">
+          <div class="dash-card">
+            <span>Total Transaksi</span>
+            <strong id="dash-tx-daily">0</strong>
+            <small>Harian</small>
+            <strong id="dash-tx-weekly">0</strong>
+            <small>Mingguan</small>
+            <strong id="dash-tx-monthly">0</strong>
+            <small>Bulanan</small>
+          </div>
+          <div class="dash-card">
+            <span>Total Pendapatan</span>
+            <strong id="dash-rev-daily">Rp0</strong>
+            <small>Harian</small>
+            <strong id="dash-rev-weekly">Rp0</strong>
+            <small>Mingguan</small>
+            <strong id="dash-rev-monthly">Rp0</strong>
+            <small>Bulanan</small>
+          </div>
+          <div class="dash-card">
+            <span>Produk Terjual</span>
+            <strong id="dash-item-daily">0</strong>
+            <small>Harian</small>
+            <strong id="dash-item-weekly">0</strong>
+            <small>Mingguan</small>
+            <strong id="dash-item-monthly">0</strong>
+            <small>Bulanan</small>
+          </div>
+          <div class="dash-card">
+            <span>Total User</span>
+            <strong id="dash-total-users">0</strong>
+            <small>Semua user terdaftar</small>
+          </div>
+          <div class="dash-card">
+            <span>Total Produk</span>
+            <strong id="dash-total-products">0</strong>
+            <small>Semua produk</small>
+            <strong id="dash-total-products-available">0</strong>
+            <small>Produk tersedia</small>
+            <strong id="dash-total-products-empty">0</strong>
+            <small>Produk kosong</small>
+          </div>
+        </div>
+
+        <div class="dashboard-chart-head">
+          <h3>Grafik Pendapatan</h3>
+          <select id="dashboard-trend-mode">
+            <option value="daily">Harian</option>
+            <option value="weekly">Mingguan</option>
+            <option value="monthly">Bulanan</option>
+          </select>
+        </div>
+        <svg id="dashboard-chart" class="dashboard-chart" viewBox="0 0 800 280" preserveAspectRatio="none"></svg>
+
+        <div class="dashboard-chart-head" style="margin-top:12px">
+          <h3>Best Produk Terlaris</h3>
+          <select id="dashboard-best-limit">
+            <option value="5">Top 5</option>
+            <option value="10" selected>Top 10</option>
+            <option value="20">Top 20</option>
+            <option value="50">Top 50</option>
+            <option value="100">Top 100</option>
+          </select>
+        </div>
+        <table id="dashboard-best-table">
+          <thead>
+            <tr>
+              <th>Urutan</th>
+              <th>Produk</th>
+              <th>Total Terjual</th>
+              <th>Total Pendapatan</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section id="panel-produk" class="card tab-panel active" role="tabpanel">
+        <h2>Daftar Produk</h2>
+        <div id="product-error" class="error-box" style="display:none"></div>
+        <form id="product-form" class="form-grid">
+          <input type="hidden" id="product-id" />
+          <label>
+            SKU
+            <input id="sku" required placeholder="BRG-010" />
+          </label>
+          <label>
+            Nama
+            <input id="name" required placeholder="Nama produk" />
+          </label>
+          <label>
+            Harga
+            <input id="price" type="number" min="0" step="1" required />
+          </label>
+          <label>
+            Stok
+            <input id="stock" type="number" min="0" step="1" required />
+          </label>
+          <div class="form-actions">
+            <button type="submit" id="save-product">💾 Simpan</button>
+            <button type="button" id="cancel-edit" class="secondary">✖ Batal</button>
+          </div>
+        </form>
+
+        <input id="product-table-search" placeholder="Cari SKU / nama produk..." />
+
+        <div class="table-wrap">
+          <table id="products-table">
+            <thead>
+              <tr>
+                <th>SKU</th>
+                <th>Produk</th>
+                <th>Harga</th>
+                <th>Stok</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="panel-transaksi" class="card tab-panel" role="tabpanel">
+        <h2>Transaksi</h2>
+        <div id="transaction-error" class="error-box" style="display:none"></div>
+        <div class="cashier-controls">
+          <input
+            id="product-search"
+            list="product-options"
+            placeholder="Cari SKU / nama produk"
+          />
+          <datalist id="product-options"></datalist>
+          <input id="qty-input" type="number" min="1" step="1" value="1" />
+          <button id="add-cart">➕ Tambah</button>
+        </div>
+        <div id="product-picker-list" class="product-picker-list"></div>
+        <div id="selected-product" class="helper-text"></div>
+
+        <div class="table-wrap">
+          <table id="cart-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Harga</th>
+                <th>Qty</th>
+                <th>Subtotal</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="summary">
+          <div id="sale-mode" class="helper-text"></div>
+          <div class="total-box">Total: <strong id="total-text">Rp0</strong></div>
+          <label>
+            Bayar
+            <input id="payment-input" type="number" min="0" step="1" value="0" />
+          </label>
+          <button id="cancel-sale-edit" type="button" class="secondary" style="display:none">
+            ↩ Batal
+          </button>
+          <button id="checkout">💳 Checkout</button>
+        </div>
+
+        <div id="result-box" class="result-box"></div>
+      </section>
+
+      <section id="panel-riwayat" class="card tab-panel" role="tabpanel">
+        <h2>Riwayat Transaksi Terakhir</h2>
+        <div id="history-error" class="error-box" style="display:none"></div>
+        <div class="history-tools">
+          <select id="history-filter-type">
+            <option value="all">Semua</option>
+            <option value="date">Per Tanggal</option>
+            <option value="month">Per Bulan</option>
+          </select>
+          <input id="history-filter-date" type="date" />
+          <input id="history-filter-month" type="month" style="display:none" />
+          <button id="apply-history-filter" class="secondary">🔎 Terapkan</button>
+          <button id="reset-history-filter" class="secondary">🔄 Reset</button>
+          <button id="export-history-excel">📥 Excel</button>
+        </div>
+        <div id="history-summary" class="history-summary"></div>
+        <div class="table-wrap">
+          <table id="sales-table">
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <th>Kasir</th>
+                <th>Total</th>
+                <th>Bayar</th>
+                <th>Kembali</th>
+                <th>Waktu</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="panel-users" class="card tab-panel admin-only" role="tabpanel" style="display:none">
+        <h2>Manajemen Users</h2>
+        <form id="user-form" class="form-grid">
+          <input type="hidden" id="user-id" />
+          <label>
+            Username
+            <input id="user-username" required />
+          </label>
+          <label>
+            Role
+            <select id="user-role">
+              <option value="user">user</option>
+              <option value="admin">admin</option>
+            </select>
+          </label>
+          <label>
+            Password
+            <input id="user-password" type="password" placeholder="Kosongkan jika tidak diubah saat edit" />
+          </label>
+          <div class="form-actions">
+            <button type="submit">💾 Simpan</button>
+            <button type="button" id="cancel-user-edit" class="secondary">✖ Batal</button>
+          </div>
+        </form>
+
+        <table id="users-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Role</th>
+              <th>Dibuat</th>
+              <th>Aksi</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+
+      <section id="panel-settings" class="card tab-panel admin-only" role="tabpanel" style="display:none">
+        <h2>Pengaturan Aplikasi</h2>
+        <form id="app-config-form" class="form-grid">
+          <label>
+            Nama Aplikasi
+            <input id="app-config-name" required />
+          </label>
+          <label>
+            Deskripsi Aplikasi
+            <input id="app-config-description" required />
+          </label>
+          <div class="form-actions">
+            <button type="submit">💾 Simpan</button>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <div id="confirm-modal" class="confirm-modal" style="display:none">
+      <div class="confirm-card">
+        <h3 id="confirm-title">Konfirmasi</h3>
+        <p id="confirm-message"></p>
+        <div class="confirm-actions">
+          <button id="confirm-cancel" class="secondary">✖ Batal</button>
+          <button id="confirm-ok" class="danger">🗑 Hapus</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast"></div>
+    <script src="./renderer.js"></script>
+  </body>
+</html>
