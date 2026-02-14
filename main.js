@@ -62,17 +62,19 @@ function buildInvoiceHtml(appCfg, sale) {
     <meta charset="utf-8" />
     <title>Invoice ${invoiceNo}</title>
     <style>
-      body { font-family: 'Segoe UI', Arial, sans-serif; margin: 14px; font-size: 12px; color: #111; }
-      .head { text-align: center; margin-bottom: 8px; }
-      .title { font-size: 16px; font-weight: 700; }
-      .desc { font-size: 11px; color: #444; }
-      .line { border-top: 1px dashed #666; margin: 8px 0; }
+      @page { size: 80mm auto; margin: 2mm; }
+      html, body { width: 76mm; margin: 0 auto; padding: 0; }
+      body { font-family: 'Consolas', 'Courier New', monospace; font-size: 11px; color: #111; }
+      .head { text-align: center; margin-bottom: 6px; }
+      .title { font-size: 14px; font-weight: 700; line-height: 1.2; }
+      .desc { font-size: 10px; color: #444; margin-top: 2px; }
+      .line { border-top: 1px dashed #666; margin: 6px 0; }
       table { width: 100%; border-collapse: collapse; }
-      th, td { padding: 4px 0; vertical-align: top; }
-      th { border-bottom: 1px solid #000; font-size: 11px; }
+      th, td { padding: 2px 0; vertical-align: top; }
+      th { border-bottom: 1px solid #000; font-size: 10px; }
       .meta td { padding: 2px 0; }
       .tot td { padding: 2px 0; }
-      .foot { text-align: center; margin-top: 10px; font-size: 11px; color: #444; }
+      .foot { text-align: center; margin-top: 8px; font-size: 10px; color: #444; }
     </style>
   </head>
   <body>
@@ -326,8 +328,8 @@ ipcMain.handle("sales:printInvoice", async (_event, saleId) => {
   const html = buildInvoiceHtml(appCfg, sale);
 
   const printWindow = new BrowserWindow({
-    width: 420,
-    height: 680,
+    width: 360,
+    height: 800,
     show: false,
     autoHideMenuBar: true,
     webPreferences: {
@@ -341,7 +343,8 @@ ipcMain.handle("sales:printInvoice", async (_event, saleId) => {
     printWindow.webContents.print(
       {
         silent: false,
-        printBackground: true
+        printBackground: true,
+        margins: { marginType: "none" }
       },
       (success, errorType) => {
         if (!success && errorType) reject(new Error(`Print gagal: ${errorType}`));

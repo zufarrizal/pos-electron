@@ -42,6 +42,7 @@ Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan d
 - Metode pembayaran: `Tunai` / `QRIS`.
 - Nomor invoice format: `INV/YY/MM/DD/xxxxx`.
 - Tombol cetak invoice tersedia setelah checkout.
+- Template cetak invoice dioptimalkan untuk printer thermal `80mm`.
 
 ### Riwayat Transaksi
 - Filter: `Harian` (default), `Semua`, `Per Tanggal`, `Per Bulan`.
@@ -143,6 +144,18 @@ npx electron-builder --win nsis --config.win.signAndEditExecutable=false
 Output:
 - Installer: `dist/POS-Kasir-Setup-1.0.0.exe`
 - Portable unpacked: `dist/win-unpacked/POS Kasir.exe`
+
+## Cetak Invoice Thermal
+
+- Format struk default: thermal `80mm`.
+- Layout cetak dibuat compact (font kecil, margin minim) untuk kasir/restoran.
+- Cetak dapat dilakukan dari:
+  - notifikasi hasil checkout,
+  - tombol print di tabel riwayat transaksi.
+- Jika hasil cetak belum pas:
+  1. Buka dialog print.
+  2. Pilih printer thermal yang benar.
+  3. Pastikan paper size di driver printer diset ke `80mm`.
 
 ## Lokasi Database
 
