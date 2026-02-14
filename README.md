@@ -12,7 +12,10 @@ Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, ma
 - Edit transaksi dari riwayat
 - Finalisasi transaksi (`Selesai`) untuk mengunci transaksi
 - Admin tetap bisa edit/hapus riwayat transaksi
-- Filter riwayat transaksi berdasarkan tanggal/bulan
+- Print invoice dari riwayat transaksi
+- Print invoice langsung dari notifikasi checkout
+- Filter riwayat transaksi: Harian, Semua, Per Tanggal, Per Bulan
+- Tombol reset filter riwayat kembali ke mode Harian
 - Export riwayat transaksi ke Excel
 - Dashboard admin:
 1. Total transaksi harian/mingguan/bulanan
@@ -85,6 +88,18 @@ Database SQLite disimpan di:
 
 `%APPDATA%\pos-electron\pos.sqlite`
 
+## Script Utilitas
+
+- Seed produk restoran:
+```bash
+npx electron scripts/seed_restaurant_products.js
+```
+
+- Hapus semua data kecuali user:
+```bash
+npx electron scripts/reset_data_keep_users.js
+```
+
 ## Aturan Akses
 
 - `admin`:
@@ -104,3 +119,4 @@ Database SQLite disimpan di:
 
 - Jika data produk kosong setelah reset, seed akan otomatis masuk saat aplikasi dijalankan.
 - Export Excel mengikuti filter riwayat yang aktif.
+- Riwayat transaksi default menampilkan data harian untuk performa lebih ringan.
