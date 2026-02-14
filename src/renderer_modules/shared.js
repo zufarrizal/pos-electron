@@ -32,7 +32,7 @@ const state = {
   appConfig: { appName: "POS Kasir", appDescription: "Electron + SQL" },
   dashboardTrendMode: "weekly",
   dashboardBestLimit: 10,
-  dashboardBestMode: "monthly",
+  dashboardBestMode: "weekly",
   transactionRecoMode: "monthly",
   transactionRecoLimit: 4
 };
