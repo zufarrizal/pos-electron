@@ -3,6 +3,7 @@
   isAdmin, toastMsg, friendlyError,
   showErr, clearErr, clearAllErr,
   switchTab, showLogin, showApp,
+  initTheme, toggleTheme,
   renderAppConfig,
   resetSaleEditMode
 } from "./shared.js";
@@ -125,6 +126,10 @@ function bindEvents() {
     } catch (e) {
       toastMsg(friendlyError(e, "Gagal mode layar penuh."));
     }
+  });
+
+  refs.themeToggleBtn?.addEventListener("click", () => {
+    toggleTheme();
   });
 
   $("#product-form").addEventListener("submit", async (e) => {
@@ -535,6 +540,12 @@ function bindEvents() {
 
 async function bootstrap() {
   try {
+    try {
+      initTheme();
+    } catch {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+
     state.appConfig = await window.posApi.getAppConfig();
     renderAppConfig();
     $("#history-filter-date").style.display = "none";
@@ -557,3 +568,5 @@ async function bootstrap() {
 }
 
 export { bindEvents, bootstrap };
+
+

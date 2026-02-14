@@ -8,6 +8,7 @@ const refs = {
   appHeader: $("#app-header"),
   appMain: $("#app-main"),
   toast: $("#toast"),
+  themeToggleBtn: $("#theme-toggle-btn"),
   tabButtons: [...document.querySelectorAll(".tab-btn")],
   tabPanels: [...document.querySelectorAll(".tab-panel")],
   adminOnly: [...document.querySelectorAll(".admin-only")],
@@ -40,6 +41,7 @@ const money = new Intl.NumberFormat("id-ID", {
   currency: "IDR",
   maximumFractionDigits: 0
 });
+const THEME_STORAGE_KEY = "pos-theme";
 
 function isAdmin() {
   return state.currentUser?.role === "admin";
@@ -141,6 +143,35 @@ function showApp() {
   updateFullscreenButton();
 }
 
+function applyTheme(theme) {
+  const nextTheme = theme === "dark" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", nextTheme);
+  if (refs.themeToggleBtn) {
+    refs.themeToggleBtn.textContent = nextTheme === "dark" ? "☀ Mode Terang" : "🌙 Mode Gelap";
+  }
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  } catch {
+    // abaikan error storage di lingkungan terbatas
+  }
+}
+
+function initTheme() {
+  let saved = "light";
+  try {
+    const raw = localStorage.getItem(THEME_STORAGE_KEY);
+    if (raw === "dark" || raw === "light") saved = raw;
+  } catch {
+    saved = "light";
+  }
+  applyTheme(saved);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light";
+  applyTheme(current === "dark" ? "light" : "dark");
+}
+
 function renderAppConfig() {
   $("#app-title").textContent = state.appConfig.appName || "POS Kasir";
   $("#app-description").textContent = state.appConfig.appDescription || "Electron + SQL";
@@ -164,6 +195,7 @@ export {
   showErr, clearErr, clearAllErr,
   switchTab, applyRoleUI,
   showLogin, showApp,
+  initTheme, toggleTheme,
   renderAppConfig, updateFullscreenButton,
   resetSaleEditMode
 };
