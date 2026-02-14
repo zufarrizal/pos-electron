@@ -106,6 +106,7 @@ function applyRoleUI() {
   });
   if (tabsEl) {
     tabsEl.classList.toggle("user-mode", !visible);
+    tabsEl.classList.toggle("admin-mode", visible);
   }
 
   if (
