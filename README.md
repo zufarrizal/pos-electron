@@ -35,6 +35,7 @@ Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan d
   - Total Tunai
   - Total QRIS
 - Aksi riwayat berbasis ikon.
+- Tombol `Lihat` untuk melihat rincian item produk yang dibeli per transaksi.
 - Finalisasi transaksi (`Selesai`) untuk lock edit user non-admin.
 - Admin tetap dapat edit transaksi final.
 - Hapus riwayat khusus admin.
@@ -52,7 +53,9 @@ Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan d
   - Total Produk Tersedia
   - Total Produk Kosong
 - Grafik pendapatan (kurva) dengan mode `Harian`, `Mingguan`, `Bulanan`.
+- Default awal grafik pendapatan: `Mingguan`.
 - Best seller list dengan filter periode `Harian/Mingguan/Bulanan/Tahunan`.
+- Default awal filter best seller: `Mingguan`.
 - Limit best seller: `5`, `10`, `20`, `50`, `100`.
 
 ### UI & Utilitas
@@ -62,6 +65,7 @@ Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan d
 - Dark mode / light mode switch.
 - Fullscreen toggle.
 - Konfirmasi hapus/finalisasi dengan modal.
+- Tabel bersifat responsif: mengikuti jumlah data, lalu scroll internal saat mencapai batas tinggi layar.
 
 ## Akun Default
 
