@@ -31,6 +31,40 @@ function isResetAdminShortcut(event) {
 }
 
 function bindEvents() {
+  const handleTabChange = async (targetId) => {
+    switchTab(targetId);
+    try {
+      if (targetId === "panel-dashboard") {
+        await reloadDashboard();
+        return;
+      }
+      if (targetId === "panel-produk") {
+        await reloadProducts();
+        return;
+      }
+      if (targetId === "panel-transaksi") {
+        await reloadProducts();
+        await reloadRecommendations();
+        renderCart();
+        return;
+      }
+      if (targetId === "panel-riwayat") {
+        await reloadSales();
+        return;
+      }
+      if (targetId === "panel-users") {
+        await reloadUsers();
+        return;
+      }
+      if (targetId === "panel-settings") {
+        state.appConfig = await window.posApi.getAppConfig();
+        renderAppConfig();
+      }
+    } catch (error) {
+      toastMsg(friendlyError(error, "Gagal memuat data tab."));
+    }
+  };
+
   const addProductToCart = (product, qtyToAdd = 1) => {
     clearErr("transaction");
     const qty = Number(qtyToAdd || 0);
@@ -425,7 +459,7 @@ function bindEvents() {
     if (action === "edit") {
       try {
         const sale = await window.posApi.getSaleById(saleId);
-        switchTab("panel-transaksi");
+        await handleTabChange("panel-transaksi");
         state.editingSaleId = sale.id;
         $("#checkout").textContent = "💾 Simpan";
         $("#cancel-sale-edit").style.display = "block";
@@ -532,9 +566,9 @@ function bindEvents() {
     }
   });
 
-  refs.tabButtons.forEach((b) => b.addEventListener("click", () => {
+  refs.tabButtons.forEach((b) => b.addEventListener("click", async () => {
     if (b.style.display === "none") return;
-    switchTab(b.dataset.tabTarget);
+    await handleTabChange(b.dataset.tabTarget);
   }));
 }
 
