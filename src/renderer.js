@@ -1,6 +1,8 @@
 const $ = (s) => document.querySelector(s);
 const loginScreen = $("#login-screen");
 const loginForm = $("#login-form");
+const loginShortcutActions = $("#login-shortcut-actions");
+const loginResetAdminBtn = $("#login-reset-admin-btn");
 const appHeader = $("#app-header");
 const appMain = $("#app-main");
 const toast = $("#toast");
@@ -12,6 +14,7 @@ const loginError = $("#login-error");
 const productError = $("#product-error");
 const transactionError = $("#transaction-error");
 const historyError = $("#history-error");
+const paymentMethodInput = $("#payment-method");
 
 let currentUser = null;
 let products = [];
@@ -59,7 +62,12 @@ function applyRoleUI() {
   $("#reset-admin-password-btn").style.display = visible ? "" : "none";
 }
 
-function showLogin() { loginScreen.style.display = ""; appHeader.style.display = "none"; appMain.style.display = "none"; }
+function showLogin() {
+  loginScreen.style.display = "";
+  appHeader.style.display = "none";
+  appMain.style.display = "none";
+  if (loginShortcutActions) loginShortcutActions.style.display = "none";
+}
 function showApp() {
   loginScreen.style.display = "none"; appHeader.style.display = ""; appMain.style.display = "";
   $("#current-user-text").textContent = `Login: ${currentUser.username} (${currentUser.role})`;
@@ -115,21 +123,23 @@ function renderCart() {
 }
 
 function renderSalesSummary(s) {
-  const x = s || { transactionCount: 0, totalSales: 0, totalPayment: 0, totalChange: 0 };
+  const x = s || { transactionCount: 0, totalSales: 0, totalPayment: 0, totalChange: 0, totalTunai: 0, totalQris: 0 };
   $("#history-summary").innerHTML = `
     <div class="summary-chip"><span>Jumlah Transaksi</span><strong>${x.transactionCount}</strong></div>
     <div class="summary-chip"><span>Total Penjualan</span><strong>${money.format(x.totalSales)}</strong></div>
     <div class="summary-chip"><span>Total Pembayaran</span><strong>${money.format(x.totalPayment)}</strong></div>
-    <div class="summary-chip"><span>Total Kembalian</span><strong>${money.format(x.totalChange)}</strong></div>`;
+    <div class="summary-chip"><span>Total Kembalian</span><strong>${money.format(x.totalChange)}</strong></div>
+    <div class="summary-chip"><span>Total Tunai</span><strong>${money.format(x.totalTunai || 0)}</strong></div>
+    <div class="summary-chip"><span>Total QRIS</span><strong>${money.format(x.totalQris || 0)}</strong></div>`;
 }
 
 function renderSalesTable(rows) {
   $("#sales-table tbody").innerHTML = rows.map((r) => {
-    const print = `<button data-sale-action="print" data-sale-id="${r.id}" class="secondary">🖨 Print</button>`;
-    const status = r.isFinalized === 1 ? `<span class="status-done">Selesai</span>` : `<button data-sale-action="finalize" data-sale-id="${r.id}">✅ Selesai</button>`;
+    const print = `<button data-sale-action="print" data-sale-id="${r.id}" class="secondary" title="Print">🖨</button>`;
+    const status = r.isFinalized === 1 ? `<span class="status-done" title="Selesai">✅</span>` : `<button data-sale-action="finalize" data-sale-id="${r.id}" title="Selesai">✅</button>`;
     const canEdit = isAdmin() || r.isFinalized !== 1;
-    const edit = canEdit ? `<button data-sale-action="edit" data-sale-id="${r.id}" class="secondary">✏ Edit</button>` : `<button class="secondary" disabled>🔒 Terkunci</button>`;
-    const del = isAdmin() ? `<button data-sale-action="delete" data-sale-id="${r.id}" class="danger">🗑 Hapus</button>` : "";
+    const edit = canEdit ? `<button data-sale-action="edit" data-sale-id="${r.id}" class="secondary" title="Edit">✏</button>` : `<button class="secondary" disabled title="Terkunci">🔒</button>`;
+    const del = isAdmin() ? `<button data-sale-action="delete" data-sale-id="${r.id}" class="danger" title="Hapus">🗑</button>` : "";
     return `<tr><td>${r.invoiceNo}</td><td>${r.cashierName || "-"}</td><td>${money.format(r.total)}</td><td>${money.format(r.payment)}</td><td>${money.format(r.changeAmount)}</td><td>${new Date(r.createdAt + "Z").toLocaleString("id-ID")}</td><td><div class="sale-actions">${print}${edit}${status}${del}</div></td></tr>`;
   }).join("");
 }
@@ -199,6 +209,7 @@ function resetSaleEditMode() {
   $("#sale-mode").textContent = "";
   $("#cancel-sale-edit").style.display = "none";
   $("#checkout").textContent = "💳 Bayar";
+  if (paymentMethodInput) paymentMethodInput.value = "tunai";
 }
 
 async function reloadProducts() { products = await window.posApi.listProducts(); renderProductsTable(); renderProductPicker(); }
@@ -227,6 +238,42 @@ loginForm.addEventListener("submit", async (e) => {
     currentUser = await window.posApi.login({ username: $("#login-username").value, password: $("#login-password").value });
     $("#login-password").value = ""; showApp(); switchTab(isAdmin() ? "panel-dashboard" : "panel-produk"); await reloadAll(); toastMsg("Login berhasil.");
   } catch (error) { const m = friendlyError(error, "Login gagal."); showErr("login", m); toastMsg(m); }
+});
+
+function isResetAdminShortcut(event) {
+  const key = String(event.key || "").toLowerCase();
+  const code = String(event.code || "");
+  const hasModifier = event.ctrlKey || event.metaKey;
+  return hasModifier && event.shiftKey && (key === "p" || code === "KeyP");
+}
+
+document.addEventListener("keydown", (event) => {
+  const onLoginScreen = loginScreen.style.display !== "none";
+  if (!onLoginScreen) return;
+  if (isResetAdminShortcut(event)) {
+    event.preventDefault();
+    const show = loginShortcutActions.style.display === "none";
+    loginShortcutActions.style.display = show ? "" : "none";
+    toastMsg(show ? "Shortcut aktif: tombol reset admin ditampilkan." : "Shortcut disembunyikan.");
+  }
+});
+
+loginResetAdminBtn?.addEventListener("click", async () => {
+  const ok = await confirmDialog("Reset password ADMIN menjadi 7890?", {
+    title: "Reset",
+    okText: "🔁 Reset",
+    cancelText: "✖ Batal"
+  });
+  if (!ok) return;
+  try {
+    await window.posApi.resetAdminPasswordQuick();
+    showErr("login", "Password ADMIN direset ke 7890.");
+    toastMsg("Password ADMIN direset.");
+  } catch (error) {
+    const m = friendlyError(error, "Gagal reset password ADMIN.");
+    showErr("login", m);
+    toastMsg(m);
+  }
 });
 
 $("#logout-btn").addEventListener("click", async () => {
@@ -272,11 +319,12 @@ $("#add-cart").addEventListener("click", () => {
 $("#cart-table tbody").addEventListener("click", (e) => { const b = e.target.closest("button[data-remove]"); if (!b) return; cart = cart.filter((x) => x.productId !== Number(b.dataset.remove)); renderCart(); });
 $("#checkout").addEventListener("click", async () => {
   clearErr("transaction");
-  const items = cart.map((x) => ({ productId: x.productId, qty: x.qty })); const payment = Number($("#payment-input").value || 0);
+  const items = cart.map((x) => ({ productId: x.productId, qty: x.qty })); const payment = Number($("#payment-input").value || 0); const paymentMethod = String(paymentMethodInput?.value || "tunai");
   try {
-    const result = editingSaleId ? await window.posApi.updateSale({ saleId: editingSaleId, items, payment }) : await window.posApi.createSale({ items, payment });
+    const result = editingSaleId ? await window.posApi.updateSale({ saleId: editingSaleId, items, payment, paymentMethod }) : await window.posApi.createSale({ items, payment, paymentMethod });
     $("#result-box").style.display = "block";
-    $("#result-box").innerHTML = `<strong>${editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}<br><button type="button" class="secondary" data-result-action="print" data-sale-id="${result.saleId}">🖨 Print</button>`;
+    const methodLabel = paymentMethod === "qris" ? "QRIS" : "Tunai";
+    $("#result-box").innerHTML = `<strong>${editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Metode: ${methodLabel}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}<br><button type="button" class="secondary" data-result-action="print" data-sale-id="${result.saleId}">🖨 Print</button>`;
     cart = []; $("#payment-input").value = "0"; resetSaleEditMode(); renderCart(); await reloadProducts(); await reloadSales();
   } catch (error) { const m = friendlyError(error, "Simpan transaksi gagal."); showErr("transaction", m); toastMsg(m); }
 });
@@ -328,7 +376,7 @@ $("#sales-table tbody").addEventListener("click", async (e) => {
   if (action === "edit") {
     try {
       const sale = await window.posApi.getSaleById(saleId); switchTab("panel-transaksi");
-      editingSaleId = sale.id; $("#checkout").textContent = "💾 Simpan"; $("#cancel-sale-edit").style.display = "block"; $("#sale-mode").textContent = `Mode edit: ${sale.invoiceNo}`; $("#payment-input").value = String(sale.payment);
+      editingSaleId = sale.id; $("#checkout").textContent = "💾 Simpan"; $("#cancel-sale-edit").style.display = "block"; $("#sale-mode").textContent = `Mode edit: ${sale.invoiceNo}`; $("#payment-input").value = String(sale.payment); if (paymentMethodInput) paymentMethodInput.value = sale.paymentMethod || "tunai";
       editBaseQtyByProduct = {}; sale.items.forEach((x) => { editBaseQtyByProduct[x.productId] = Number(editBaseQtyByProduct[x.productId] || 0) + x.qty; });
       cart = sale.items.map((x) => { const p = products.find((z) => z.id === x.productId); return { productId: x.productId, name: p ? p.name : x.name, price: p ? p.price : x.price, qty: x.qty }; });
       renderCart(); toastMsg(`Transaksi ${sale.invoiceNo} siap diubah.`);

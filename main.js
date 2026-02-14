@@ -35,6 +35,7 @@ function buildInvoiceHtml(appCfg, sale) {
   const desc = escapeHtml(appCfg?.appDescription || "Electron + SQL");
   const invoiceNo = escapeHtml(sale.invoiceNo);
   const cashier = escapeHtml(sale.cashierName || "-");
+  const paymentMethod = escapeHtml(String(sale.paymentMethod || "tunai").toUpperCase());
   const createdAt = new Date(`${sale.createdAt}Z`).toLocaleString("id-ID");
 
   const itemsHtml = (sale.items || [])
@@ -84,6 +85,7 @@ function buildInvoiceHtml(appCfg, sale) {
     <table class="meta">
       <tr><td>Invoice</td><td>: ${invoiceNo}</td></tr>
       <tr><td>Kasir</td><td>: ${cashier}</td></tr>
+      <tr><td>Metode</td><td>: ${paymentMethod}</td></tr>
       <tr><td>Waktu</td><td>: ${escapeHtml(createdAt)}</td></tr>
     </table>
     <div class="line"></div>
@@ -158,6 +160,10 @@ ipcMain.handle("auth:resetAdminPassword", async () => {
   return db.resetAdminPassword();
 });
 
+ipcMain.handle("auth:resetAdminPasswordQuick", async () => {
+  return db.resetAdminPassword();
+});
+
 ipcMain.handle("app:getConfig", async () => db.getAppConfig());
 ipcMain.handle("app:updateConfig", async (_event, payload) => {
   ensureAdmin();
@@ -214,6 +220,7 @@ ipcMain.handle("sales:exportExcel", async (_event, filter) => {
   const data = rows.map((x) => ({
     Invoice: x.invoiceNo,
     Kasir: x.cashierName || "-",
+    Metode: String(x.paymentMethod || "tunai").toUpperCase(),
     Total: x.total,
     Bayar: x.payment,
     Kembalian: x.changeAmount,
@@ -226,6 +233,7 @@ ipcMain.handle("sales:exportExcel", async (_event, filter) => {
   data.push({
     Invoice: "TOTAL",
     Kasir: `Transaksi: ${sum.transactionCount || 0}`,
+    Metode: `Tunai: ${sum.totalTunai || 0} | QRIS: ${sum.totalQris || 0}`,
     Total: sum.totalSales || 0,
     Bayar: sum.totalPayment || 0,
     Kembalian: sum.totalChange || 0

@@ -43,6 +43,7 @@ function init() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       invoice_no TEXT NOT NULL UNIQUE,
       user_id INTEGER,
+      payment_method TEXT NOT NULL DEFAULT 'tunai' CHECK (payment_method IN ('tunai','qris')),
       total INTEGER NOT NULL CHECK (total >= 0),
       payment INTEGER NOT NULL CHECK (payment >= 0),
       change_amount INTEGER NOT NULL CHECK (change_amount >= 0),
@@ -82,6 +83,7 @@ function migrateSalesTable() {
   const columns = database.prepare("PRAGMA table_info(sales)").all();
   const hasFinalized = columns.some((col) => col.name === "is_finalized");
   const hasUserId = columns.some((col) => col.name === "user_id");
+  const hasPaymentMethod = columns.some((col) => col.name === "payment_method");
   if (!hasFinalized) {
     database.exec(
       "ALTER TABLE sales ADD COLUMN is_finalized INTEGER NOT NULL DEFAULT 0 CHECK (is_finalized IN (0,1))"
@@ -89,6 +91,11 @@ function migrateSalesTable() {
   }
   if (!hasUserId) {
     database.exec("ALTER TABLE sales ADD COLUMN user_id INTEGER");
+  }
+  if (!hasPaymentMethod) {
+    database.exec(
+      "ALTER TABLE sales ADD COLUMN payment_method TEXT NOT NULL DEFAULT 'tunai' CHECK (payment_method IN ('tunai','qris'))"
+    );
   }
 }
 
@@ -198,11 +205,32 @@ function login(payload) {
 }
 
 function resetAdminPassword() {
-  const admin = database
-    .prepare("SELECT id FROM users WHERE upper(username) = 'ADMIN'")
-    .get();
-  if (!admin) throw new Error("User ADMIN tidak ditemukan.");
-  database.prepare("UPDATE users SET password = '7890' WHERE id = ?").run(admin.id);
+  const tx = database.transaction(() => {
+    const userId1 = database
+      .prepare("SELECT id, username FROM users WHERE id = 1")
+      .get();
+    const conflictAdmin = database
+      .prepare("SELECT id FROM users WHERE lower(username) = 'admin' AND id <> 1")
+      .get();
+
+    if (conflictAdmin) {
+      database
+        .prepare("UPDATE users SET username = ? WHERE id = ?")
+        .run(`ADMIN_${conflictAdmin.id}`, conflictAdmin.id);
+    }
+
+    if (!userId1) {
+      database
+        .prepare("INSERT INTO users (id, username, password, role) VALUES (1, 'ADMIN', '7890', 'admin')")
+        .run();
+      return;
+    }
+
+    database
+      .prepare("UPDATE users SET username = 'ADMIN', password = '7890', role = 'admin' WHERE id = 1")
+      .run();
+  });
+  tx();
   return true;
 }
 
@@ -303,13 +331,11 @@ function deleteUser(userId, actorUserId) {
   const actorId = Number(actorUserId || 0);
   if (!id) throw new Error("ID user tidak valid.");
   if (id === actorId) throw new Error("User aktif tidak bisa menghapus akunnya sendiri.");
+  if (id === 1) throw new Error("User id 1 tidak boleh dihapus.");
   const user = database
     .prepare("SELECT id, username FROM users WHERE id = ?")
     .get(id);
   if (!user) throw new Error("User tidak ditemukan.");
-  if (String(user.username).toUpperCase() === "ADMIN") {
-    throw new Error("User ADMIN default tidak boleh dihapus.");
-  }
   database.prepare("DELETE FROM users WHERE id = ?").run(id);
   return true;
 }
@@ -393,6 +419,7 @@ function createSale(payload) {
   const items = Array.isArray(payload.items) ? payload.items : [];
   const payment = Number(payload.payment || 0);
   const userId = Number(payload.userId || 0);
+  const paymentMethod = String(payload.paymentMethod || "tunai").toLowerCase();
 
   if (items.length === 0) throw new Error("Keranjang masih kosong.");
 
@@ -407,6 +434,9 @@ function createSale(payload) {
     }
   }
   if (!userId) throw new Error("User kasir tidak valid.");
+  if (!["tunai", "qris"].includes(paymentMethod)) {
+    throw new Error("Metode pembayaran tidak valid.");
+  }
 
   const generateInvoiceNo = () => {
     const now = new Date();
@@ -459,9 +489,9 @@ function createSale(payload) {
     const changeAmount = payment - total;
     const saleResult = database
       .prepare(
-        "INSERT INTO sales (invoice_no, user_id, total, payment, change_amount) VALUES (?, ?, ?, ?, ?)"
+        "INSERT INTO sales (invoice_no, user_id, payment_method, total, payment, change_amount) VALUES (?, ?, ?, ?, ?, ?)"
       )
-      .run(invoiceNo, userId, total, payment, changeAmount);
+      .run(invoiceNo, userId, paymentMethod, total, payment, changeAmount);
 
     const saleId = saleResult.lastInsertRowid;
     const insertItem = database.prepare(`
@@ -487,6 +517,7 @@ function createSale(payload) {
     return {
       saleId,
       invoiceNo,
+      paymentMethod,
       total,
       payment,
       changeAmount
@@ -507,6 +538,7 @@ function getSaleById(saleId, options = {}) {
       SELECT
         s.id,
         s.invoice_no AS invoiceNo,
+        s.payment_method AS paymentMethod,
         s.total,
         s.payment,
         s.change_amount AS changeAmount,
@@ -538,6 +570,7 @@ function updateSale(payload, options = {}) {
   const saleId = Number(payload.saleId);
   const items = Array.isArray(payload.items) ? payload.items : [];
   const payment = Number(payload.payment || 0);
+  const paymentMethod = String(payload.paymentMethod || "tunai").toLowerCase();
   const allowFinalizedEdit = Boolean(options.allowFinalizedEdit);
 
   if (!saleId) throw new Error("ID transaksi tidak valid.");
@@ -552,6 +585,9 @@ function updateSale(payload, options = {}) {
     if (!item.productId || !Number.isInteger(item.qty) || item.qty <= 0) {
       throw new Error("Item transaksi tidak valid.");
     }
+  }
+  if (!["tunai", "qris"].includes(paymentMethod)) {
+    throw new Error("Metode pembayaran tidak valid.");
   }
 
   const tx = database.transaction(() => {
@@ -609,8 +645,8 @@ function updateSale(payload, options = {}) {
 
     const changeAmount = payment - total;
     database
-      .prepare("UPDATE sales SET total = ?, payment = ?, change_amount = ? WHERE id = ?")
-      .run(total, payment, changeAmount, saleId);
+      .prepare("UPDATE sales SET payment_method = ?, total = ?, payment = ?, change_amount = ? WHERE id = ?")
+      .run(paymentMethod, total, payment, changeAmount, saleId);
 
     database.prepare("DELETE FROM sale_items WHERE sale_id = ?").run(saleId);
 
@@ -637,6 +673,7 @@ function updateSale(payload, options = {}) {
     return {
       saleId,
       invoiceNo: sale.invoiceNo,
+      paymentMethod,
       total,
       payment,
       changeAmount
@@ -679,6 +716,7 @@ function getSalesReport(filter = {}, options = {}) {
       SELECT
         s.id,
         s.invoice_no AS invoiceNo,
+        s.payment_method AS paymentMethod,
         s.total,
         s.payment,
         s.change_amount AS changeAmount,
@@ -701,7 +739,9 @@ function getSalesReport(filter = {}, options = {}) {
         COUNT(*) AS transactionCount,
         COALESCE(SUM(total), 0) AS totalSales,
         COALESCE(SUM(payment), 0) AS totalPayment,
-        COALESCE(SUM(change_amount), 0) AS totalChange
+        COALESCE(SUM(change_amount), 0) AS totalChange,
+        COALESCE(SUM(CASE WHEN payment_method = 'tunai' THEN total ELSE 0 END), 0) AS totalTunai,
+        COALESCE(SUM(CASE WHEN payment_method = 'qris' THEN total ELSE 0 END), 0) AS totalQris
       FROM sales s
       ${where}
       `

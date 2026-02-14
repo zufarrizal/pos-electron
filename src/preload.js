@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("posApi", {
   logout: () => ipcRenderer.invoke("auth:logout"),
   getSession: () => ipcRenderer.invoke("auth:session"),
   resetAdminPassword: () => ipcRenderer.invoke("auth:resetAdminPassword"),
+  resetAdminPasswordQuick: () => ipcRenderer.invoke("auth:resetAdminPasswordQuick"),
 
   getAppConfig: () => ipcRenderer.invoke("app:getConfig"),
   updateAppConfig: (payload) => ipcRenderer.invoke("app:updateConfig", payload),

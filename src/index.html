@@ -22,6 +22,9 @@
           </label>
           <button type="submit">🔐 Login</button>
         </form>
+        <div id="login-shortcut-actions" style="display:none; margin-top:8px;">
+          <button id="login-reset-admin-btn" type="button" class="secondary">🔁 Reset Admin</button>
+        </div>
         <div id="login-error" class="error-box" style="display:none"></div>
       </div>
     </section>
@@ -221,6 +224,13 @@
         <div class="summary">
           <div id="sale-mode" class="helper-text"></div>
           <div class="total-box">Total: <strong id="total-text">Rp0</strong></div>
+          <label>
+            Metode
+            <select id="payment-method">
+              <option value="tunai" selected>Tunai</option>
+              <option value="qris">QRIS</option>
+            </select>
+          </label>
           <label>
             Bayar
             <input id="payment-input" type="number" min="0" step="1" value="0" />

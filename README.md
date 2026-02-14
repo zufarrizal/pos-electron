@@ -1,6 +1,6 @@
-# POS Kasir Electron + SQLite
+﻿# POS Kasir Electron + SQLite
 
-Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, manajemen produk/user, dashboard admin, dan export riwayat ke Excel.
+Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, manajemen produk/user, dashboard admin, print invoice, dan export riwayat ke Excel.
 
 ## Ringkasan Fitur
 
@@ -9,6 +9,7 @@ Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, ma
 - CRUD Produk
 - CRUD Users (khusus admin)
 - Transaksi kasir dengan pencarian SKU/nama, daftar pilihan produk yang bisa di-scroll, dan validasi stok
+- Metode pembayaran: `Tunai` dan `QRIS`
 - Edit transaksi dari riwayat
 - Finalisasi transaksi (`Selesai`) untuk mengunci transaksi
 - Admin tetap bisa edit/hapus riwayat transaksi
@@ -17,13 +18,14 @@ Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, ma
 - Filter riwayat transaksi: Harian, Semua, Per Tanggal, Per Bulan
 - Tombol reset filter riwayat kembali ke mode Harian
 - Export riwayat transaksi ke Excel
+- Ringkasan riwayat: jumlah transaksi, total penjualan, total pembayaran, total kembalian, total tunai, total QRIS
 - Dashboard admin:
 1. Total transaksi harian/mingguan/bulanan
 2. Total pendapatan harian/mingguan/bulanan
 3. Total produk terjual harian/mingguan/bulanan
 4. Total user
 5. Total produk (tersedia/kosong)
-6. Grafik pendapatan (harian/mingguan/bulanan)
+6. Grafik pendapatan (harian/mingguan/bulanan) bentuk kurva
 7. Best produk terlaris (Top 5/10/20/50/100)
 - Fullscreen toggle
 - Pengaturan nama & deskripsi aplikasi (admin)
@@ -32,6 +34,15 @@ Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, ma
 
 1. `ADMIN / 7890` (role: `admin`)
 2. `kasir / 1234` (role: `user`)
+
+## Shortcut Reset Admin (Halaman Login)
+
+- Tekan `Ctrl + Shift + P` di halaman login untuk menampilkan tombol reset admin.
+- Tombol reset akan mengatur ulang akun admin berdasarkan `users.id = 1`.
+- Hasil reset:
+1. `username` user id 1 menjadi `ADMIN`
+2. `password` user id 1 menjadi `7890`
+3. `role` user id 1 menjadi `admin`
 
 ## Format Invoice
 
@@ -59,17 +70,17 @@ Saat database produk kosong, sistem akan otomatis mengisi **50 menu restoran Ind
 
 ```text
 pos-electron/
-├─ main.js
-├─ package.json
-├─ src/
-│  ├─ db.js
-│  ├─ preload.js
-│  ├─ renderer.js
-│  ├─ index.html
-│  └─ styles.css
-└─ scripts/
-   ├─ seed_restaurant_products.js
-   └─ reset_data_keep_users.js
+|-- main.js
+|-- package.json
+|-- src/
+|   |-- db.js
+|   |-- preload.js
+|   |-- renderer.js
+|   |-- index.html
+|   `-- styles.css
+`-- scripts/
+    |-- seed_restaurant_products.js
+    `-- reset_data_keep_users.js
 ```
 
 ## Cara Menjalankan
@@ -120,3 +131,4 @@ npx electron scripts/reset_data_keep_users.js
 - Jika data produk kosong setelah reset, seed akan otomatis masuk saat aplikasi dijalankan.
 - Export Excel mengikuti filter riwayat yang aktif.
 - Riwayat transaksi default menampilkan data harian untuk performa lebih ringan.
+- Jika shortcut reset admin tidak muncul, pastikan fokus ada di jendela login lalu tekan `Ctrl + Shift + P` sekali lagi.
