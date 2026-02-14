@@ -441,7 +441,9 @@ button + button {
 }
 
 .tab-panel.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .tab-panel.card {
@@ -535,18 +537,24 @@ button + button {
 .table-wrap {
   width: 100%;
   margin-top: 10px;
-  overflow-x: auto;
+  overflow: auto;
   border: 1px solid var(--line-strong);
   border-radius: 12px;
   background: #fff;
   box-shadow: inset 0 0 0 1px rgba(197, 210, 229, 0.35);
+  min-height: 0;
+  height: auto;
+  flex: 0 1 auto;
+  max-height: clamp(220px, 52vh, 620px);
 }
 
 .audit-table-wrap {
-  max-height: 460px;
+  height: auto;
+  max-height: clamp(220px, 52vh, 620px);
   overflow: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  flex: 0 1 auto;
 }
 
 .audit-table-wrap::-webkit-scrollbar {
@@ -556,10 +564,12 @@ button + button {
 }
 
 .product-table-wrap {
-  max-height: 460px;
+  height: auto;
+  max-height: clamp(220px, 52vh, 620px);
   overflow: auto;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  flex: 0 1 auto;
 }
 
 .product-table-wrap::-webkit-scrollbar {
@@ -1202,6 +1212,16 @@ td button {
     grid-template-columns: 1fr;
   }
 
+  .table-wrap {
+    max-height: clamp(180px, 45vh, 460px);
+  }
+
+  .product-table-wrap,
+  .audit-table-wrap {
+    height: auto;
+    max-height: clamp(180px, 45vh, 460px);
+  }
+
   .summary .total-box {
     max-width: none;
   }
@@ -1255,6 +1275,16 @@ td button {
   .tab-btn {
     min-width: 0;
     flex: 1 1 calc(50% - 8px);
+  }
+
+  .table-wrap {
+    max-height: clamp(160px, 40vh, 380px);
+  }
+
+  .product-table-wrap,
+  .audit-table-wrap {
+    height: auto;
+    max-height: clamp(160px, 40vh, 380px);
   }
 
   .tabs.user-mode {
