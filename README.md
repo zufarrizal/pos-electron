@@ -2,9 +2,7 @@
 
 Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan dukungan transaksi cepat, manajemen produk, riwayat transaksi, laporan Excel, cetak invoice, dan dashboard admin.
 
-## Image Preview Slide
-
-> Semua preview ditampilkan dalam ukuran kecil.
+## Image Preview 
 
 <p align="center">
   <img src="./image%20preview/Screenshot%202026-02-14%20150539.png" alt="Preview 1" width="24%" />
