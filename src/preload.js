@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld("posApi", {
   createSale: (payload) => ipcRenderer.invoke("sales:create", payload),
   updateSale: (payload) => ipcRenderer.invoke("sales:update", payload),
   getSaleById: (id) => ipcRenderer.invoke("sales:getById", id),
+  getSaleDetail: (id) => ipcRenderer.invoke("sales:getDetail", id),
   finalizeSale: (id) => ipcRenderer.invoke("sales:finalize", id),
   deleteSale: (id) => ipcRenderer.invoke("sales:delete", id),
   listSales: (filter) => ipcRenderer.invoke("sales:list", filter),

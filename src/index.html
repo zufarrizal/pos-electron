@@ -183,7 +183,7 @@
 
         <input id="product-table-search" placeholder="Cari SKU / nama produk..." />
 
-        <div class="table-wrap">
+        <div class="table-wrap product-table-wrap">
           <table id="products-table">
             <thead>
               <tr>
@@ -234,6 +234,7 @@
         <div id="product-picker-list" class="product-picker-list"></div>
         <div id="selected-product" class="helper-text"></div>
 
+        <h3 class="cart-title">Keranjang</h3>
         <div class="table-wrap">
           <table id="cart-table">
             <thead>
@@ -354,7 +355,7 @@
         <div class="history-tools">
           <button id="audit-refresh" class="secondary">&#128260; Muat Ulang</button>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap audit-table-wrap">
           <table id="audit-table">
             <thead>
               <tr>
@@ -402,6 +403,29 @@
         <div class="confirm-actions">
           <button id="confirm-cancel" class="secondary">&#10006; Batal</button>
           <button id="confirm-ok" class="danger">&#128465; Hapus</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="sale-detail-modal" class="confirm-modal" style="display:none">
+      <div class="confirm-card detail-card">
+        <h3 id="sale-detail-title">Rincian Transaksi</h3>
+        <p id="sale-detail-meta" class="helper-text" style="margin-top:6px"></p>
+        <div class="table-wrap" style="margin-top:10px">
+          <table id="sale-detail-table">
+            <thead>
+              <tr>
+                <th>Produk</th>
+                <th>Qty</th>
+                <th>Harga</th>
+                <th>Subtotal</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="confirm-actions">
+          <button id="sale-detail-close" class="secondary">✖ Tutup</button>
         </div>
       </div>
     </div>

@@ -92,6 +92,7 @@ function renderSalesTable(rows) {
   $("#sales-table tbody").innerHTML = rows
     .map((r) => {
       const print = `<button data-sale-action="print" data-sale-id="${r.id}" class="secondary" title="Cetak">🖨</button>`;
+      const view = `<button data-sale-action="view" data-sale-id="${r.id}" class="secondary" title="Lihat">👁</button>`;
       const status = r.isFinalized === 1
         ? `<span class="status-done" title="Selesai">✅</span>`
         : `<button data-sale-action="finalize" data-sale-id="${r.id}" title="Selesai">✅</button>`;
@@ -103,7 +104,7 @@ function renderSalesTable(rows) {
         ? `<button data-sale-action="delete" data-sale-id="${r.id}" class="danger" title="Hapus">🗑</button>`
         : "";
 
-      return `<tr><td>${r.invoiceNo}</td><td>${r.cashierName || "-"}</td><td>${money.format(r.total)}</td><td>${money.format(r.payment)}</td><td>${money.format(r.changeAmount)}</td><td>${new Date(`${r.createdAt}Z`).toLocaleString("id-ID")}</td><td><div class="sale-actions">${print}${edit}${status}${del}</div></td></tr>`;
+      return `<tr><td>${r.invoiceNo}</td><td>${r.cashierName || "-"}</td><td>${money.format(r.total)}</td><td>${money.format(r.payment)}</td><td>${money.format(r.changeAmount)}</td><td>${new Date(`${r.createdAt}Z`).toLocaleString("id-ID")}</td><td><div class="sale-actions">${print}${view}${edit}${status}${del}</div></td></tr>`;
     })
     .join("");
 }

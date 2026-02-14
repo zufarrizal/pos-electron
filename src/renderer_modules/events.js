@@ -32,6 +32,20 @@ function isResetAdminShortcut(event) {
 }
 
 function bindEvents() {
+  const closeSaleDetailModal = () => {
+    $("#sale-detail-modal").style.display = "none";
+  };
+
+  const openSaleDetailModal = (sale) => {
+    const methodLabel = String(sale.paymentMethod || "tunai").toLowerCase() === "qris" ? "QRIS" : "Tunai";
+    $("#sale-detail-title").textContent = `Rincian ${sale.invoiceNo}`;
+    $("#sale-detail-meta").textContent = `Kasir: ${sale.cashierName || "-"} | Metode: ${methodLabel} | Total: ${money.format(sale.total || 0)}`;
+    $("#sale-detail-table tbody").innerHTML = (sale.items || [])
+      .map((x) => `<tr><td>${x.name}</td><td>${x.qty}</td><td>${money.format(x.price)}</td><td>${money.format(x.subtotal)}</td></tr>`)
+      .join("");
+    $("#sale-detail-modal").style.display = "";
+  };
+
   const handleTabChange = async (targetId) => {
     switchTab(targetId);
     try {
@@ -440,6 +454,18 @@ function bindEvents() {
       return;
     }
 
+    if (action === "view") {
+      try {
+        const sale = await window.posApi.getSaleDetail(saleId);
+        openSaleDetailModal(sale);
+      } catch (error) {
+        const m = friendlyError(error, "Gagal memuat rincian transaksi.");
+        showErr("history", m);
+        toastMsg(m);
+      }
+      return;
+    }
+
     if (action === "finalize") {
       const ok = await confirmDialog("Tandai transaksi sebagai selesai?", { title: "Selesai", okText: "✅ Selesai", cancelText: "✖ Batal" });
       if (!ok) return;
@@ -569,6 +595,11 @@ function bindEvents() {
     } catch (error) {
       toastMsg(friendlyError(error, "Gagal menyimpan pengaturan aplikasi."));
     }
+  });
+
+  $("#sale-detail-close")?.addEventListener("click", closeSaleDetailModal);
+  $("#sale-detail-modal")?.addEventListener("click", (e) => {
+    if (e.target.id === "sale-detail-modal") closeSaleDetailModal();
   });
 
   $("#backup-db-btn")?.addEventListener("click", async () => {

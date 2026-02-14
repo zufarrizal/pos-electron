@@ -300,6 +300,11 @@ ipcMain.handle("sales:getById", async (_event, saleId) => {
   return db.getSaleById(saleId, { allowFinalizedEdit: currentUser.role === "admin" });
 });
 
+ipcMain.handle("sales:getDetail", async (_event, saleId) => {
+  ensureLogin();
+  return db.getSaleById(saleId, { allowFinalizedEdit: true });
+});
+
 ipcMain.handle("sales:finalize", async (_event, saleId) => {
   ensureLogin();
   const result = db.finalizeSale(saleId);

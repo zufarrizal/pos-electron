@@ -28,7 +28,7 @@ const state = {
   cart: [],
   editingSaleId: null,
   editBaseQtyByProduct: {},
-  salesFilter: { type: "all", date: "", month: "" },
+  salesFilter: { type: "daily", date: "", month: "" },
   appConfig: { appName: "POS Kasir", appDescription: "Electron + SQL" },
   dashboardTrendMode: "weekly",
   dashboardBestLimit: 10,
