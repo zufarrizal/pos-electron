@@ -218,33 +218,94 @@ ipcMain.handle("sales:list", async (_event, filter) => db.getSalesReport(filter 
 
 ipcMain.handle("sales:exportExcel", async (_event, filter) => {
   ensureLogin();
-  const report = db.getSalesReport(filter || {}, { limit: 100000 });
+  const activeFilter = filter || {};
+  const report = db.getSalesReport(activeFilter, { limit: 100000 });
   const rows = report.rows || [];
-
-  const data = rows.map((x) => ({
-    Invoice: x.invoiceNo,
-    Kasir: x.cashierName || "-",
-    Metode: String(x.paymentMethod || "tunai").toUpperCase(),
-    Total: x.total,
-    Bayar: x.payment,
-    Kembalian: x.changeAmount,
-    Status: x.isFinalized === 1 ? "Selesai" : "Draft",
-    Waktu: x.createdAt
-  }));
-
   const sum = report.summary || {};
-  data.push({});
-  data.push({
-    Invoice: "TOTAL",
-    Kasir: `Transaksi: ${sum.transactionCount || 0}`,
-    Metode: `Tunai: ${sum.totalTunai || 0} | QRIS: ${sum.totalQris || 0}`,
-    Total: sum.totalSales || 0,
-    Bayar: sum.totalPayment || 0,
-    Kembalian: sum.totalChange || 0
-  });
 
   const wb = XLSX.utils.book_new();
-  const ws = XLSX.utils.json_to_sheet(data);
+  const filterLabel =
+    activeFilter.type === "date"
+      ? `Per Tanggal (${activeFilter.date || "-"})`
+      : activeFilter.type === "month"
+        ? `Per Bulan (${activeFilter.month || "-"})`
+        : activeFilter.type === "daily"
+          ? "Harian"
+          : "Semua";
+
+  const header = [
+    "No",
+    "Invoice",
+    "Kasir",
+    "Metode",
+    "Total",
+    "Bayar",
+    "Kembalian",
+    "Status",
+    "Waktu"
+  ];
+
+  const body = rows.map((x, i) => ([
+    i + 1,
+    x.invoiceNo,
+    x.cashierName || "-",
+    String(x.paymentMethod || "tunai").toUpperCase(),
+    Number(x.total || 0),
+    Number(x.payment || 0),
+    Number(x.changeAmount || 0),
+    x.isFinalized === 1 ? "Selesai" : "Draft",
+    new Date(`${x.createdAt}Z`).toLocaleString("id-ID")
+  ]));
+
+  const aoa = [
+    ["LAPORAN RIWAYAT TRANSAKSI"],
+    [`Dibuat: ${new Date().toLocaleString("id-ID")}`],
+    [`Filter: ${filterLabel}`],
+    [],
+    header,
+    ...body,
+    [],
+    ["RINGKASAN"],
+    ["Jumlah Transaksi", Number(sum.transactionCount || 0)],
+    ["Total Penjualan", Number(sum.totalSales || 0)],
+    ["Total Pembayaran", Number(sum.totalPayment || 0)],
+    ["Total Kembalian", Number(sum.totalChange || 0)],
+    ["Total Tunai", Number(sum.totalTunai || 0)],
+    ["Total QRIS", Number(sum.totalQris || 0)]
+  ];
+
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"] = [
+    { wch: 6 },
+    { wch: 22 },
+    { wch: 18 },
+    { wch: 10 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 14 },
+    { wch: 12 },
+    { wch: 22 }
+  ];
+  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }];
+
+  const headerRow = 5; // 1-based
+  const dataStart = headerRow + 1;
+  const dataEnd = dataStart + Math.max(0, body.length - 1);
+  ws["!autofilter"] = { ref: `A${headerRow}:I${Math.max(headerRow, dataEnd)}` };
+
+  for (let r = dataStart; r <= dataEnd; r += 1) {
+    for (const col of ["E", "F", "G"]) {
+      const cellRef = `${col}${r}`;
+      if (ws[cellRef]) ws[cellRef].z = '"Rp" #,##0';
+    }
+  }
+
+  const summaryStart = dataEnd + 4;
+  for (let r = summaryStart; r <= summaryStart + 5; r += 1) {
+    const cellRef = `B${r}`;
+    if (ws[cellRef]) ws[cellRef].z = '"Rp" #,##0';
+  }
+
   XLSX.utils.book_append_sheet(wb, ws, "Riwayat");
 
   const result = await dialog.showSaveDialog(mainWindow, {
