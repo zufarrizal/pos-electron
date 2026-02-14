@@ -184,40 +184,24 @@ npx electron scripts/reset_data_keep_users.js
 
 ### Admin
 1. Akses dashboard admin.
-2. Kelola user (tambah/ubah/hapus, kecuali `id=1`).
-3. Kelola pengaturan aplikasi.
-4. Hapus riwayat transaksi.
-5. Edit transaksi final.
+2. Kelola produk (tambah/ubah/hapus, sesuai validasi relasi transaksi).
+3. Kelola transaksi (buat/ubah/finalisasi/hapus riwayat transaksi).
+4. Edit transaksi final (yang sudah `Selesai`).
+5. Kelola user (tambah/ubah/hapus, kecuali `id=1`).
+6. Akses tab Audit Log aktivitas user.
+7. Kelola pengaturan aplikasi (nama & deskripsi).
+8. Backup dan restore database dari UI Pengaturan.
+9. Cetak invoice dan export laporan Excel.
+10. Reset password admin ke default (`ADMIN/7890`) via shortcut login.
 
 ### Pengguna
-1. Kelola produk dan transaksi sesuai menu yang ditampilkan.
-2. Tidak bisa menghapus riwayat.
-3. Tidak bisa menghapus user.
-
-## Troubleshooting
-
-### Tidak bisa login
-1. Pastikan jalankan dari folder `pos-electron` (bukan folder di atasnya).
-2. Coba reset admin dari login:
-   - Tekan `Ctrl + Shift + P`
-   - Klik `Atur Ulang Admin`
-   - Login lagi dengan `ADMIN / 7890`
-3. Jika masih gagal, tutup aplikasi lalu cek/backup database di `%APPDATA%\pos-electron\pos.sqlite`.
-
-### Error `better-sqlite3` beda Node module version
-
-```bash
-npm install
-npm run rebuild
-```
-
-### Riwayat terasa berat
-- Gunakan filter default `Harian`.
-- Gunakan export Excel untuk analisis data besar.
-
-## Catatan Keamanan
-
-Password user sekarang disimpan dalam bentuk hash (`bcryptjs`) dan data password lama plaintext akan dimigrasikan otomatis saat aplikasi berjalan.
-Untuk produksi, tetap disarankan:
-- Tambah audit log aktivitas user.
-- Pertimbangkan enkripsi file backup untuk skenario multi-user.
+1. Akses tab Produk, Transaksi, dan Riwayat.
+2. Kelola produk (tambah/ubah/hapus) sesuai validasi data.
+3. Buat transaksi baru dan ubah transaksi yang belum final.
+4. Finalisasi transaksi (`Selesai`) untuk mengunci transaksi.
+5. Lihat riwayat transaksi sesuai filter yang tersedia.
+6. Cetak invoice dan export riwayat transaksi ke Excel.
+7. Tidak bisa menghapus riwayat transaksi.
+8. Tidak bisa mengelola user.
+9. Tidak bisa akses dashboard admin, audit log, dan pengaturan aplikasi.
+10. Tidak bisa backup/restore database.
