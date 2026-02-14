@@ -460,8 +460,7 @@ td button {
 .session-box button + button,
 .history-tools button + button,
 .summary button + button,
-.form-actions button + button,
-.transaction-reco-list .reco-item + .reco-item {
+.form-actions button + button {
   margin-left: 8px;
 }
 
@@ -529,6 +528,7 @@ td button {
   margin-bottom: 8px;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   gap: 8px;
   align-items: stretch;
 }
@@ -536,10 +536,12 @@ td button {
 .reco-item {
   width: 100%;
   margin: 0;
+  height: 100%;
   min-height: 78px;
   padding: 10px;
   display: grid;
   gap: 2px;
+  align-content: start;
   justify-items: start;
   text-align: left;
   white-space: normal;
@@ -580,6 +582,29 @@ td button {
   border: 1px solid #a7f3d0;
   border-radius: 999px;
   padding: 1px 7px;
+}
+
+[data-theme="dark"] .reco-item {
+  background: linear-gradient(180deg, #0f2f2c 0%, #102722 100%);
+  color: #d9fcef;
+  border-color: #1e5d56;
+}
+
+[data-theme="dark"] .reco-item:hover {
+  background: #124039;
+  border-color: #2b7a70;
+  box-shadow: 0 8px 16px rgba(45, 212, 191, 0.14);
+}
+
+[data-theme="dark"] .reco-rank,
+[data-theme="dark"] .reco-meta {
+  color: #7cead8;
+}
+
+[data-theme="dark"] .reco-stock {
+  color: #a7f3d0;
+  background: rgba(20, 83, 45, 0.45);
+  border-color: #1f7a51;
 }
 
 .summary {
