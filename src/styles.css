@@ -246,6 +246,24 @@ button + button {
 [data-theme="dark"] th {
   background: #1a2436;
 }
+
+[data-theme="dark"] .confirm-modal {
+  background: rgba(2, 6, 23, 0.7);
+}
+
+[data-theme="dark"] .confirm-card {
+  background: #0f172a;
+  border-color: var(--line);
+  color: var(--text);
+}
+
+[data-theme="dark"] #confirm-title {
+  color: var(--text);
+}
+
+[data-theme="dark"] #confirm-message {
+  color: var(--muted);
+}
 .session-box {
   display: flex;
   align-items: center;
