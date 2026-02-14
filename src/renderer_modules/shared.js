@@ -99,9 +99,13 @@ function switchTab(targetId) {
 
 function applyRoleUI() {
   const visible = isAdmin();
+  const tabsEl = document.querySelector(".tabs");
   refs.adminOnly.forEach((el) => {
     el.style.display = visible ? "" : "none";
   });
+  if (tabsEl) {
+    tabsEl.classList.toggle("user-mode", !visible);
+  }
 
   if (
     !visible

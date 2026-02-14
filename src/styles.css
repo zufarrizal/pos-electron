@@ -290,6 +290,11 @@ button + button {
   gap: 8px;
 }
 
+.tabs.user-mode {
+  grid-template-columns: repeat(3, minmax(170px, 210px));
+  justify-content: center;
+}
+
 .tab-btn {
   width: 100%;
   min-width: 0;
@@ -1009,6 +1014,11 @@ td button {
   .tab-btn {
     min-width: 0;
     flex: 1 1 calc(50% - 8px);
+  }
+
+  .tabs.user-mode {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 }
 
