@@ -4,19 +4,23 @@ Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan d
 
 ## Image Preview Slide
 
-> Geser horizontal untuk melihat slide preview.
+> Semua preview ditampilkan dalam ukuran kecil.
 
 <p align="center">
-  <img src="./image%20preview/Screenshot%202026-02-14%20150539.png" alt="Preview 1" width="49%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150552.png" alt="Preview 2" width="49%" />
-</p>
-<p align="center">
-  <img src="./image%20preview/Screenshot%202026-02-14%20150555.png" alt="Preview 3" width="49%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150557.png" alt="Preview 4" width="49%" />
-</p>
-<p align="center">
-  <img src="./image%20preview/Screenshot%202026-02-14%20150559.png" alt="Preview 5" width="49%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150602.png" alt="Preview 6" width="49%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150539.png" alt="Preview 1" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150552.png" alt="Preview 2" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150555.png" alt="Preview 3" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150557.png" alt="Preview 4" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150559.png" alt="Preview 5" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150602.png" alt="Preview 6" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150604.png" alt="Preview 7" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150612.png" alt="Preview 8" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150621.png" alt="Preview 9" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150623.png" alt="Preview 10" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150625.png" alt="Preview 11" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150627.png" alt="Preview 12" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150630.png" alt="Preview 13" width="24%" />
+  <img src="./image%20preview/Screenshot%202026-02-14%20150631.png" alt="Preview 14" width="24%" />
 </p>
 
 ## Ringkasan Fitur
