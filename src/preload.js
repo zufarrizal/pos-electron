@@ -31,6 +31,9 @@ contextBridge.exposeInMainWorld("posApi", {
   deleteUser: (id) => ipcRenderer.invoke("users:delete", id),
 
   getDashboard: (options) => ipcRenderer.invoke("dashboard:get", options),
+  listAuditLogs: (options) => ipcRenderer.invoke("audit:list", options),
+  backupDatabase: () => ipcRenderer.invoke("db:backup"),
+  restoreDatabase: () => ipcRenderer.invoke("db:restore"),
 
   toggleFullscreen: () => ipcRenderer.invoke("window:toggleFullscreen"),
   getFullscreen: () => ipcRenderer.invoke("window:getFullscreen")

@@ -1,4 +1,5 @@
 const path = require("path");
+const fs = require("fs");
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const XLSX = require("xlsx");
 const db = require("./src/db");
@@ -19,6 +20,23 @@ function ensureLogin() {
 function ensureAdmin() {
   ensureLogin();
   if (currentUser.role !== "admin") throw new Error("Akses khusus admin.");
+}
+
+function writeAudit(payload = {}) {
+  try {
+    const actor = payload.actor || currentUser || {};
+    db.addAuditLog({
+      userId: actor.id || null,
+      username: actor.username || "system",
+      role: actor.role || "system",
+      action: payload.action || "UNKNOWN",
+      entity: payload.entity || "system",
+      entityId: payload.entityId == null ? null : String(payload.entityId),
+      details: payload.details == null ? null : String(payload.details)
+    });
+  } catch {
+    // Audit tidak boleh memblokir alur utama aplikasi.
+  }
 }
 
 function escapeHtml(value) {
@@ -145,12 +163,34 @@ app.on("window-all-closed", () => {
 });
 
 ipcMain.handle("auth:login", async (_event, payload) => {
-  const user = db.login(payload || {});
-  currentUser = user;
-  return user;
+  const username = String(payload?.username || "").trim();
+  try {
+    const user = db.login(payload || {});
+    currentUser = user;
+    writeAudit({
+      actor: user,
+      action: "LOGIN_SUCCESS",
+      entity: "auth",
+      details: `Login berhasil (${username})`
+    });
+    return user;
+  } catch (error) {
+    writeAudit({
+      actor: { id: null, username: username || "unknown", role: "guest" },
+      action: "LOGIN_FAILED",
+      entity: "auth",
+      details: "Login gagal"
+    });
+    throw error;
+  }
 });
 
 ipcMain.handle("auth:logout", async () => {
+  writeAudit({
+    action: "LOGOUT",
+    entity: "auth",
+    details: "Logout pengguna"
+  });
   currentUser = null;
   return true;
 });
@@ -159,17 +199,37 @@ ipcMain.handle("auth:session", async () => currentUser);
 
 ipcMain.handle("auth:resetAdminPassword", async () => {
   ensureAdmin();
-  return db.resetAdminPassword();
+  const result = db.resetAdminPassword();
+  writeAudit({
+    action: "RESET_ADMIN_PASSWORD",
+    entity: "users",
+    entityId: "1",
+    details: "Reset password admin dari panel admin"
+  });
+  return result;
 });
 
 ipcMain.handle("auth:resetAdminPasswordQuick", async () => {
-  return db.resetAdminPassword();
+  const result = db.resetAdminPassword();
+  writeAudit({
+    actor: currentUser || { id: null, username: "shortcut-login", role: "guest" },
+    action: "RESET_ADMIN_PASSWORD_QUICK",
+    entity: "users",
+    entityId: "1",
+    details: "Reset password admin via shortcut login"
+  });
+  return result;
 });
 
 ipcMain.handle("app:getConfig", async () => db.getAppConfig());
 ipcMain.handle("app:updateConfig", async (_event, payload) => {
   ensureAdmin();
   db.updateAppConfig(payload || {});
+  writeAudit({
+    action: "UPDATE_APP_CONFIG",
+    entity: "app_config",
+    details: "Memperbarui nama/deskripsi aplikasi"
+  });
   return db.getAppConfig();
 });
 
@@ -180,25 +240,59 @@ ipcMain.handle("products:recommendations", async (_event, options) => {
 });
 ipcMain.handle("products:create", async (_event, payload) => {
   ensureLogin();
-  return db.createProduct(payload || {});
+  const result = db.createProduct(payload || {});
+  writeAudit({
+    action: "CREATE_PRODUCT",
+    entity: "products",
+    entityId: result?.id,
+    details: `SKU: ${String(payload?.sku || "")}`
+  });
+  return result;
 });
 ipcMain.handle("products:update", async (_event, payload) => {
   ensureLogin();
-  return db.updateProduct(payload || {});
+  const result = db.updateProduct(payload || {});
+  writeAudit({
+    action: "UPDATE_PRODUCT",
+    entity: "products",
+    entityId: payload?.id,
+    details: `SKU: ${String(payload?.sku || "")}`
+  });
+  return result;
 });
 ipcMain.handle("products:delete", async (_event, productId) => {
   ensureLogin();
-  return db.deleteProduct(productId);
+  const result = db.deleteProduct(productId);
+  writeAudit({
+    action: "DELETE_PRODUCT",
+    entity: "products",
+    entityId: productId
+  });
+  return result;
 });
 
 ipcMain.handle("sales:create", async (_event, payload) => {
   ensureLogin();
-  return db.createSale({ ...(payload || {}), userId: currentUser.id });
+  const result = db.createSale({ ...(payload || {}), userId: currentUser.id });
+  writeAudit({
+    action: "CREATE_SALE",
+    entity: "sales",
+    entityId: result?.saleId,
+    details: `Invoice: ${result?.invoiceNo || "-"}`
+  });
+  return result;
 });
 
 ipcMain.handle("sales:update", async (_event, payload) => {
   ensureLogin();
-  return db.updateSale(payload || {}, { allowFinalizedEdit: currentUser.role === "admin" });
+  const result = db.updateSale(payload || {}, { allowFinalizedEdit: currentUser.role === "admin" });
+  writeAudit({
+    action: "UPDATE_SALE",
+    entity: "sales",
+    entityId: result?.saleId,
+    details: `Invoice: ${result?.invoiceNo || "-"}`
+  });
+  return result;
 });
 
 ipcMain.handle("sales:getById", async (_event, saleId) => {
@@ -208,12 +302,24 @@ ipcMain.handle("sales:getById", async (_event, saleId) => {
 
 ipcMain.handle("sales:finalize", async (_event, saleId) => {
   ensureLogin();
-  return db.finalizeSale(saleId);
+  const result = db.finalizeSale(saleId);
+  writeAudit({
+    action: "FINALIZE_SALE",
+    entity: "sales",
+    entityId: saleId
+  });
+  return result;
 });
 
 ipcMain.handle("sales:delete", async (_event, saleId) => {
   ensureAdmin();
-  return db.deleteSale(saleId);
+  const result = db.deleteSale(saleId);
+  writeAudit({
+    action: "DELETE_SALE",
+    entity: "sales",
+    entityId: saleId
+  });
+  return result;
 });
 
 ipcMain.handle("sales:list", async (_event, filter) => db.getSalesReport(filter || {}));
@@ -363,15 +469,93 @@ ipcMain.handle("users:list", async () => {
 });
 ipcMain.handle("users:create", async (_event, payload) => {
   ensureAdmin();
-  return db.createUser(payload || {});
+  const result = db.createUser(payload || {});
+  writeAudit({
+    action: "CREATE_USER",
+    entity: "users",
+    entityId: result?.id,
+    details: `Username: ${String(payload?.username || "")}`
+  });
+  return result;
 });
 ipcMain.handle("users:update", async (_event, payload) => {
   ensureAdmin();
-  return db.updateUser(payload || {});
+  const result = db.updateUser(payload || {});
+  writeAudit({
+    action: "UPDATE_USER",
+    entity: "users",
+    entityId: payload?.id,
+    details: `Username: ${String(payload?.username || "")}`
+  });
+  return result;
 });
 ipcMain.handle("users:delete", async (_event, userId) => {
   ensureAdmin();
-  return db.deleteUser(userId, currentUser.id);
+  const result = db.deleteUser(userId, currentUser.id);
+  writeAudit({
+    action: "DELETE_USER",
+    entity: "users",
+    entityId: userId
+  });
+  return result;
+});
+
+ipcMain.handle("audit:list", async (_event, options) => {
+  ensureAdmin();
+  return db.listAuditLogs(options || {});
+});
+
+ipcMain.handle("db:backup", async () => {
+  ensureAdmin();
+  const defaultName = `pos-backup-${new Date().toISOString().slice(0, 10)}.sqlite`;
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: "Simpan Backup Database",
+    defaultPath: defaultName,
+    filters: [{ name: "SQLite", extensions: ["sqlite", "db"] }]
+  });
+  if (result.canceled || !result.filePath) return { canceled: true };
+
+  await db.backupTo(result.filePath);
+  writeAudit({
+    action: "BACKUP_DATABASE",
+    entity: "database",
+    details: `Backup ke ${result.filePath}`
+  });
+  return { canceled: false, filePath: result.filePath };
+});
+
+ipcMain.handle("db:restore", async () => {
+  ensureAdmin();
+  const pick = await dialog.showOpenDialog(mainWindow, {
+    title: "Pilih File Backup Database",
+    properties: ["openFile"],
+    filters: [{ name: "SQLite", extensions: ["sqlite", "db"] }]
+  });
+  if (pick.canceled || !pick.filePaths?.length) return { canceled: true };
+
+  const sourcePath = pick.filePaths[0];
+  const targetPath = db.getDatabasePath();
+  const walPath = `${targetPath}-wal`;
+  const shmPath = `${targetPath}-shm`;
+
+  db.close();
+  fs.copyFileSync(sourcePath, targetPath);
+  if (fs.existsSync(walPath)) fs.unlinkSync(walPath);
+  if (fs.existsSync(shmPath)) fs.unlinkSync(shmPath);
+  db.init();
+  writeAudit({
+    action: "RESTORE_DATABASE",
+    entity: "database",
+    details: `Restore dari ${sourcePath}`
+  });
+
+  currentUser = null;
+  setTimeout(() => {
+    app.relaunch();
+    app.exit(0);
+  }, 150);
+
+  return { canceled: false, restarted: true };
 });
 
 ipcMain.handle("dashboard:get", async (_event, options) => {

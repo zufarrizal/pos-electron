@@ -18,6 +18,7 @@ import {
   reloadSales,
   reloadRecommendations,
   reloadUsers,
+  reloadAuditLogs,
   reloadDashboard,
   reloadAll,
   confirmDialog
@@ -54,6 +55,10 @@ function bindEvents() {
       }
       if (targetId === "panel-users") {
         await reloadUsers();
+        return;
+      }
+      if (targetId === "panel-audit") {
+        await reloadAuditLogs();
         return;
       }
       if (targetId === "panel-settings") {
@@ -563,6 +568,42 @@ function bindEvents() {
       toastMsg("Pengaturan aplikasi disimpan.");
     } catch (error) {
       toastMsg(friendlyError(error, "Gagal menyimpan pengaturan aplikasi."));
+    }
+  });
+
+  $("#backup-db-btn")?.addEventListener("click", async () => {
+    try {
+      const r = await window.posApi.backupDatabase();
+      toastMsg(r?.canceled ? "Backup dibatalkan." : "Backup database berhasil.");
+    } catch (error) {
+      toastMsg(friendlyError(error, "Backup database gagal."));
+    }
+  });
+
+  $("#restore-db-btn")?.addEventListener("click", async () => {
+    const ok = await confirmDialog(
+      "Restore database akan menimpa data saat ini dan aplikasi akan restart. Lanjutkan?",
+      { title: "Restore Database", okText: "♻ Restore", cancelText: "✖ Batal" }
+    );
+    if (!ok) return;
+    try {
+      const r = await window.posApi.restoreDatabase();
+      if (r?.canceled) {
+        toastMsg("Restore dibatalkan.");
+        return;
+      }
+      toastMsg("Restore berhasil. Aplikasi akan restart.");
+    } catch (error) {
+      toastMsg(friendlyError(error, "Restore database gagal."));
+    }
+  });
+
+  $("#audit-refresh")?.addEventListener("click", async () => {
+    try {
+      await reloadAuditLogs();
+      toastMsg("Audit log dimuat ulang.");
+    } catch (error) {
+      toastMsg(friendlyError(error, "Gagal memuat audit log."));
     }
   });
 

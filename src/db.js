@@ -1,8 +1,27 @@
 const path = require("path");
 const Database = require("better-sqlite3");
+const bcrypt = require("bcryptjs");
 const { app } = require("electron");
 
 let database;
+const BCRYPT_ROUNDS = 10;
+const BCRYPT_PREFIX = /^\$2[aby]\$\d{2}\$/;
+
+function isPasswordHash(value) {
+  return BCRYPT_PREFIX.test(String(value || ""));
+}
+
+function hashPassword(plain) {
+  return bcrypt.hashSync(String(plain || ""), BCRYPT_ROUNDS);
+}
+
+function verifyPassword(plain, stored) {
+  const storedValue = String(stored || "");
+  if (isPasswordHash(storedValue)) {
+    return bcrypt.compareSync(String(plain || ""), storedValue);
+  }
+  return String(plain || "") === storedValue;
+}
 
 function getDbPath() {
   if (app && app.getPath) {
@@ -12,6 +31,7 @@ function getDbPath() {
 }
 
 function init() {
+  if (database) return;
   const dbPath = getDbPath();
   database = new Database(dbPath);
   database.pragma("journal_mode = WAL");
@@ -28,6 +48,19 @@ function init() {
       password TEXT NOT NULL,
       role TEXT NOT NULL CHECK (role IN ('admin','user')),
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      username TEXT NOT NULL,
+      role TEXT NOT NULL,
+      action TEXT NOT NULL,
+      entity TEXT NOT NULL,
+      entity_id TEXT,
+      details TEXT,
+      created_at TEXT NOT NULL DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id)
     );
 
     CREATE TABLE IF NOT EXISTS products (
@@ -68,7 +101,26 @@ function init() {
   migrateSalesTable();
   seedAppConfig();
   seedUsers();
+  migrateLegacyUserPasswords();
   seedIfEmpty();
+}
+
+function close() {
+  if (!database) return;
+  database.close();
+  database = null;
+}
+
+function getDatabasePath() {
+  return getDbPath();
+}
+
+async function backupTo(destinationPath) {
+  const outPath = String(destinationPath || "").trim();
+  if (!outPath) throw new Error("Path backup tidak valid.");
+  if (!database) throw new Error("Database belum siap.");
+  await database.backup(outPath);
+  return true;
 }
 
 function seedAppConfig() {
@@ -176,8 +228,22 @@ function seedUsers() {
   const insert = database.prepare(`
     INSERT INTO users (username, password, role) VALUES (?, ?, ?)
   `);
-  insert.run("ADMIN", "7890", "admin");
-  insert.run("kasir", "1234", "user");
+  insert.run("ADMIN", hashPassword("7890"), "admin");
+  insert.run("kasir", hashPassword("1234"), "user");
+}
+
+function migrateLegacyUserPasswords() {
+  const rows = database.prepare("SELECT id, password FROM users").all();
+  if (!rows.length) return;
+
+  const update = database.prepare("UPDATE users SET password = ? WHERE id = ?");
+  const tx = database.transaction(() => {
+    for (const row of rows) {
+      if (isPasswordHash(row.password)) continue;
+      update.run(hashPassword(row.password), row.id);
+    }
+  });
+  tx();
 }
 
 function sanitizeUserRow(user) {
@@ -197,11 +263,21 @@ function login(payload) {
 
   const user = database
     .prepare(
-      "SELECT id, username, role, created_at AS createdAt FROM users WHERE lower(username) = lower(?) AND password = ?"
+      "SELECT id, username, password, role, created_at AS createdAt FROM users WHERE lower(username) = lower(?)"
     )
-    .get(username, password);
-  if (!user) throw new Error("Login gagal. Username atau password salah.");
-  return sanitizeUserRow(user);
+    .get(username);
+  if (!user || !verifyPassword(password, user.password)) {
+    throw new Error("Login gagal. Username atau password salah.");
+  }
+
+  // Upgrade sekali jalan jika masih plaintext lama.
+  if (!isPasswordHash(user.password)) {
+    database
+      .prepare("UPDATE users SET password = ? WHERE id = ?")
+      .run(hashPassword(password), user.id);
+  }
+
+  return sanitizeUserRow({ ...user, password: undefined });
 }
 
 function resetAdminPassword() {
@@ -221,14 +297,14 @@ function resetAdminPassword() {
 
     if (!userId1) {
       database
-        .prepare("INSERT INTO users (id, username, password, role) VALUES (1, 'ADMIN', '7890', 'admin')")
-        .run();
+        .prepare("INSERT INTO users (id, username, password, role) VALUES (1, 'ADMIN', ?, 'admin')")
+        .run(hashPassword("7890"));
       return;
     }
 
     database
-      .prepare("UPDATE users SET username = 'ADMIN', password = '7890', role = 'admin' WHERE id = 1")
-      .run();
+      .prepare("UPDATE users SET username = 'ADMIN', password = ?, role = 'admin' WHERE id = 1")
+      .run(hashPassword("7890"));
   });
   tx();
   return true;
@@ -244,6 +320,61 @@ function getAppConfig() {
     appName: map.app_name || "POS Kasir",
     appDescription: map.app_description || "Electron + SQL"
   };
+}
+
+function addAuditLog(payload = {}) {
+  const username = String(payload.username || "system").trim() || "system";
+  const role = String(payload.role || "system").trim() || "system";
+  const action = String(payload.action || "").trim();
+  const entity = String(payload.entity || "system").trim() || "system";
+  const entityId = payload.entityId == null ? null : String(payload.entityId);
+  const details = payload.details == null ? null : String(payload.details);
+  const userId = payload.userId == null ? null : Number(payload.userId);
+
+  if (!action) throw new Error("Audit action wajib diisi.");
+
+  database
+    .prepare(
+      `
+      INSERT INTO audit_logs (user_id, username, role, action, entity, entity_id, details)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+      `
+    )
+    .run(
+      Number.isFinite(userId) && userId > 0 ? userId : null,
+      username,
+      role,
+      action,
+      entity,
+      entityId,
+      details
+    );
+  return true;
+}
+
+function listAuditLogs(options = {}) {
+  const rawLimit = Number(options.limit || 200);
+  const limit = Number.isInteger(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 1000) : 200;
+
+  return database
+    .prepare(
+      `
+      SELECT
+        id,
+        user_id AS userId,
+        username,
+        role,
+        action,
+        entity,
+        entity_id AS entityId,
+        details,
+        created_at AS createdAt
+      FROM audit_logs
+      ORDER BY id DESC
+      LIMIT ?
+      `
+    )
+    .all(limit);
 }
 
 function updateAppConfig(payload) {
@@ -284,7 +415,7 @@ function createUser(payload) {
   try {
     const result = database
       .prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)")
-      .run(username, password, role);
+      .run(username, hashPassword(password), role);
     return { id: result.lastInsertRowid };
   } catch (error) {
     if (String(error.message).includes("UNIQUE")) {
@@ -308,7 +439,7 @@ function updateUser(payload) {
     if (setPassword) {
       const result = database
         .prepare("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?")
-        .run(username, password, role, id);
+        .run(username, hashPassword(password), role, id);
       if (result.changes === 0) throw new Error("User tidak ditemukan.");
       return true;
     }
@@ -1058,7 +1189,12 @@ function getDashboardData(options = {}) {
 
 module.exports = {
   init,
+  close,
+  getDatabasePath,
+  backupTo,
   login,
+  addAuditLog,
+  listAuditLogs,
   getAppConfig,
   updateAppConfig,
   resetAdminPassword,

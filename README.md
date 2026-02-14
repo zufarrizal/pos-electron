@@ -2,25 +2,6 @@
 
 Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan dukungan transaksi cepat, manajemen produk, riwayat transaksi, laporan Excel, cetak invoice, dan dashboard admin.
 
-## Image Preview 
-
-<p align="center">
-  <img src="./image%20preview/Screenshot%202026-02-14%20150539.png" alt="Preview 1" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150552.png" alt="Preview 2" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150555.png" alt="Preview 3" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150557.png" alt="Preview 4" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150559.png" alt="Preview 5" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150602.png" alt="Preview 6" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150604.png" alt="Preview 7" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150612.png" alt="Preview 8" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150621.png" alt="Preview 9" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150623.png" alt="Preview 10" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150625.png" alt="Preview 11" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150627.png" alt="Preview 12" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150630.png" alt="Preview 13" width="24%" />
-  <img src="./image%20preview/Screenshot%202026-02-14%20150631.png" alt="Preview 14" width="24%" />
-</p>
-
 ## Ringkasan Fitur
 
 ### Autentikasi & Role
@@ -76,6 +57,8 @@ Aplikasi kasir desktop berbasis Electron + SQLite untuk restoran/ritel, dengan d
 
 ### UI & Utilitas
 - Tab terpisah: Produk, Transaksi, Riwayat, Pengguna, Pengaturan, Dashboard (admin).
+- Tab admin **Audit Log** untuk melihat jejak aktivitas user (login, CRUD, transaksi, pengaturan).
+- Fitur **Backup DB** dan **Restore DB** langsung dari tab Pengaturan (admin).
 - Dark mode / light mode switch.
 - Fullscreen toggle.
 - Konfirmasi hapus/finalisasi dengan modal.
@@ -163,6 +146,26 @@ SQLite file:
 
 `%APPDATA%\pos-electron\pos.sqlite`
 
+## Backup & Restore Database (UI)
+
+Dilakukan dari tab **Pengaturan Aplikasi** (khusus admin).
+
+### Backup DB
+1. Buka tab `Pengaturan`.
+2. Klik tombol `Backup DB`.
+3. Pilih lokasi file backup (`.sqlite` / `.db`), lalu simpan.
+
+### Restore DB
+1. Buka tab `Pengaturan`.
+2. Klik tombol `Restore DB`.
+3. Pilih file backup database.
+4. Konfirmasi restore.
+5. Aplikasi akan restart otomatis setelah restore selesai.
+
+Catatan:
+- Restore akan menimpa data database aktif.
+- Disarankan lakukan backup sebelum restore.
+
 ## Skrip Utilitas
 
 Seed data produk restoran:
@@ -214,7 +217,7 @@ npm run rebuild
 
 ## Catatan Keamanan
 
-Saat ini password masih plain text untuk penggunaan lokal/offline. Untuk produksi, disarankan:
-- Hash password (mis. `bcrypt`).
+Password user sekarang disimpan dalam bentuk hash (`bcryptjs`) dan data password lama plaintext akan dimigrasikan otomatis saat aplikasi berjalan.
+Untuk produksi, tetap disarankan:
 - Tambah audit log aktivitas user.
-- Tambah backup/restore DB dari UI.
+- Pertimbangkan enkripsi file backup untuk skenario multi-user.

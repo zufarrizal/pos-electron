@@ -59,6 +59,9 @@
         <button class="tab-btn admin-only" data-tab-target="panel-users" role="tab" style="display:none">
           &#128101; Pengguna
         </button>
+        <button class="tab-btn admin-only" data-tab-target="panel-audit" role="tab" style="display:none">
+          &#128221; Audit Log
+        </button>
         <button class="tab-btn admin-only" data-tab-target="panel-settings" role="tab" style="display:none">
           &#9881; Pengaturan
         </button>
@@ -346,6 +349,29 @@
         </div>
       </section>
 
+      <section id="panel-audit" class="card tab-panel admin-only" role="tabpanel" style="display:none">
+        <h2>Audit Log Aktivitas User</h2>
+        <div class="history-tools">
+          <button id="audit-refresh" class="secondary">&#128260; Muat Ulang</button>
+        </div>
+        <div class="table-wrap">
+          <table id="audit-table">
+            <thead>
+              <tr>
+                <th>Waktu</th>
+                <th>User</th>
+                <th>Peran</th>
+                <th>Aksi</th>
+                <th>Entitas</th>
+                <th>ID Entitas</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
       <section id="panel-settings" class="card tab-panel admin-only" role="tabpanel" style="display:none">
         <h2>Pengaturan Aplikasi</h2>
         <form id="app-config-form" class="form-grid">
@@ -361,6 +387,11 @@
             <button type="submit">&#128190; Simpan</button>
           </div>
         </form>
+        <div class="history-tools" style="margin-top:10px;">
+          <button id="backup-db-btn" type="button" class="secondary">&#128190; Backup DB</button>
+          <button id="restore-db-btn" type="button" class="danger">&#128260; Restore DB</button>
+        </div>
+        <p class="helper-text">Restore database akan me-restart aplikasi otomatis.</p>
       </section>
     </main>
 

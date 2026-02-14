@@ -24,6 +24,7 @@ const state = {
   currentUser: null,
   products: [],
   users: [],
+  auditLogs: [],
   cart: [],
   editingSaleId: null,
   editBaseQtyByProduct: {},

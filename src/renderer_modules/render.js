@@ -116,6 +116,23 @@ function renderUsersTable() {
     .join("");
 }
 
+function renderAuditLogsTable(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  $("#audit-table tbody").innerHTML = list
+    .map((r) => `
+      <tr>
+        <td>${new Date(`${r.createdAt}Z`).toLocaleString("id-ID")}</td>
+        <td>${r.username || "-"}</td>
+        <td>${r.role || "-"}</td>
+        <td>${r.action || "-"}</td>
+        <td>${r.entity || "-"}</td>
+        <td>${r.entityId || "-"}</td>
+        <td>${r.details || "-"}</td>
+      </tr>
+    `)
+    .join("");
+}
+
 function renderDashboard(data) {
   const t = data?.totals || {};
   $("#dash-tx-daily").textContent = String(t.transactions?.daily || 0);
@@ -181,5 +198,6 @@ export {
   renderSalesSummary,
   renderSalesTable,
   renderUsersTable,
+  renderAuditLogsTable,
   renderDashboard
 };

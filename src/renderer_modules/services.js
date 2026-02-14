@@ -6,6 +6,7 @@ import {
   renderSalesSummary,
   renderSalesTable,
   renderUsersTable,
+  renderAuditLogsTable,
   renderDashboard,
   renderCart
 } from "./render.js";
@@ -36,6 +37,12 @@ async function reloadUsers() {
   renderUsersTable();
 }
 
+async function reloadAuditLogs() {
+  if (!isAdmin()) return;
+  state.auditLogs = await window.posApi.listAuditLogs({ limit: 300 });
+  renderAuditLogsTable(state.auditLogs);
+}
+
 async function reloadDashboard() {
   if (!isAdmin()) return;
   renderDashboard(
@@ -55,6 +62,7 @@ async function reloadAll() {
   await reloadSales();
   await reloadRecommendations();
   await reloadUsers();
+  await reloadAuditLogs();
   renderCart();
 }
 
@@ -82,6 +90,7 @@ export {
   reloadSales,
   reloadRecommendations,
   reloadUsers,
+  reloadAuditLogs,
   reloadDashboard,
   reloadAll,
   confirmDialog
