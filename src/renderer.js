@@ -125,11 +125,12 @@ function renderSalesSummary(s) {
 
 function renderSalesTable(rows) {
   $("#sales-table tbody").innerHTML = rows.map((r) => {
+    const print = `<button data-sale-action="print" data-sale-id="${r.id}" class="secondary">🖨 Print</button>`;
     const status = r.isFinalized === 1 ? `<span class="status-done">Selesai</span>` : `<button data-sale-action="finalize" data-sale-id="${r.id}">✅ Selesai</button>`;
     const canEdit = isAdmin() || r.isFinalized !== 1;
     const edit = canEdit ? `<button data-sale-action="edit" data-sale-id="${r.id}" class="secondary">✏ Edit</button>` : `<button class="secondary" disabled>🔒 Terkunci</button>`;
     const del = isAdmin() ? `<button data-sale-action="delete" data-sale-id="${r.id}" class="danger">🗑 Hapus</button>` : "";
-    return `<tr><td>${r.invoiceNo}</td><td>${r.cashierName || "-"}</td><td>${money.format(r.total)}</td><td>${money.format(r.payment)}</td><td>${money.format(r.changeAmount)}</td><td>${new Date(r.createdAt + "Z").toLocaleString("id-ID")}</td><td><div class="sale-actions">${edit}${status}${del}</div></td></tr>`;
+    return `<tr><td>${r.invoiceNo}</td><td>${r.cashierName || "-"}</td><td>${money.format(r.total)}</td><td>${money.format(r.payment)}</td><td>${money.format(r.changeAmount)}</td><td>${new Date(r.createdAt + "Z").toLocaleString("id-ID")}</td><td><div class="sale-actions">${print}${edit}${status}${del}</div></td></tr>`;
   }).join("");
 }
 
@@ -155,8 +156,41 @@ function renderDashboard(data) {
   $("#dash-total-products-empty").textContent = String(t.productsEmpty || 0);
   const labels = data?.trend?.labels || [];
   const values = data?.trend?.values || [];
-  const points = labels.map((_, i) => `${40 + (i * 700 / Math.max(1, labels.length - 1))},${240 - ((values[i] || 0) / Math.max(1, ...values)) * 180}`).join(" ");
-  $("#dashboard-chart").innerHTML = `<polyline fill="none" stroke="#0d9488" stroke-width="3" points="${points}"></polyline>`;
+  const max = Math.max(1, ...values);
+  const pts = labels.map((_, i) => ({
+    x: 40 + (i * 700 / Math.max(1, labels.length - 1)),
+    y: 240 - ((values[i] || 0) / max) * 180,
+    value: values[i] || 0,
+    label: labels[i] || ""
+  }));
+
+  let curvePath = "";
+  if (pts.length === 1) {
+    curvePath = `M ${pts[0].x} ${pts[0].y}`;
+  } else if (pts.length > 1) {
+    curvePath = `M ${pts[0].x} ${pts[0].y}`;
+    for (let i = 1; i < pts.length; i += 1) {
+      const prev = pts[i - 1];
+      const curr = pts[i];
+      const cx1 = prev.x + (curr.x - prev.x) * 0.4;
+      const cy1 = prev.y;
+      const cx2 = prev.x + (curr.x - prev.x) * 0.6;
+      const cy2 = curr.y;
+      curvePath += ` C ${cx1} ${cy1}, ${cx2} ${cy2}, ${curr.x} ${curr.y}`;
+    }
+  }
+
+  const circles = pts
+    .map(
+      (p) =>
+        `<circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#0d9488"><title>${p.label}: ${money.format(p.value)}</title></circle>`
+    )
+    .join("");
+
+  $("#dashboard-chart").innerHTML = `
+    <path d="${curvePath}" fill="none" stroke="#0d9488" stroke-width="3" stroke-linecap="round"></path>
+    ${circles}
+  `;
   $("#dashboard-best-table tbody").innerHTML = (data?.bestProducts || []).map((x, i) => `<tr><td>${i + 1}</td><td>${x.productName}</td><td>${x.totalQty}</td><td>${money.format(x.totalRevenue)}</td></tr>`).join("");
 }
 
@@ -242,9 +276,24 @@ $("#checkout").addEventListener("click", async () => {
   try {
     const result = editingSaleId ? await window.posApi.updateSale({ saleId: editingSaleId, items, payment }) : await window.posApi.createSale({ items, payment });
     $("#result-box").style.display = "block";
-    $("#result-box").innerHTML = `<strong>${editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}`;
+    $("#result-box").innerHTML = `<strong>${editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}<br><button type="button" class="secondary" data-result-action="print" data-sale-id="${result.saleId}">🖨 Print</button>`;
     cart = []; $("#payment-input").value = "0"; resetSaleEditMode(); renderCart(); await reloadProducts(); await reloadSales();
   } catch (error) { const m = friendlyError(error, "Simpan transaksi gagal."); showErr("transaction", m); toastMsg(m); }
+});
+
+$("#result-box").addEventListener("click", async (e) => {
+  const btn = e.target.closest("button[data-result-action='print']");
+  if (!btn) return;
+  const saleId = Number(btn.dataset.saleId || 0);
+  if (!saleId) return;
+  try {
+    await window.posApi.printSaleInvoice(saleId);
+    toastMsg("Invoice dikirim ke printer.");
+  } catch (error) {
+    const m = friendlyError(error, "Gagal print invoice.");
+    showErr("transaction", m);
+    toastMsg(m);
+  }
 });
 $("#cancel-sale-edit").addEventListener("click", () => { resetSaleEditMode(); cart = []; $("#payment-input").value = "0"; clearErr("transaction"); renderCart(); });
 
@@ -258,11 +307,22 @@ $("#apply-history-filter").addEventListener("click", async () => {
     salesFilter = { type: t, date: d, month: m }; await reloadSales();
   } catch (error) { const msg = friendlyError(error, "Gagal menerapkan filter."); showErr("history", msg); toastMsg(msg); }
 });
-$("#reset-history-filter").addEventListener("click", async () => { $("#history-filter-type").value = "all"; $("#history-filter-date").value = ""; $("#history-filter-month").value = ""; salesFilter = { type: "all", date: "", month: "" }; $("#history-filter-date").style.display = "none"; $("#history-filter-month").style.display = "none"; await reloadSales(); });
+$("#reset-history-filter").addEventListener("click", async () => { $("#history-filter-type").value = "daily"; $("#history-filter-date").value = ""; $("#history-filter-month").value = ""; salesFilter = { type: "daily", date: "", month: "" }; $("#history-filter-date").style.display = "none"; $("#history-filter-month").style.display = "none"; await reloadSales(); });
 $("#export-history-excel").addEventListener("click", async () => { try { const r = await window.posApi.exportSales(salesFilter); toastMsg(r?.canceled ? "Export dibatalkan." : `Export berhasil (${r.count} transaksi).`); } catch (e) { const m = friendlyError(e, "Gagal export Excel."); showErr("history", m); toastMsg(m); } });
 $("#sales-table tbody").addEventListener("click", async (e) => {
   const b = e.target.closest("button[data-sale-action]"); if (!b) return;
   const action = b.dataset.saleAction; const saleId = Number(b.dataset.saleId); if (!saleId) return;
+  if (action === "print") {
+    try {
+      await window.posApi.printSaleInvoice(saleId);
+      toastMsg("Invoice dikirim ke printer.");
+    } catch (error) {
+      const m = friendlyError(error, "Gagal print invoice.");
+      showErr("history", m);
+      toastMsg(m);
+    }
+    return;
+  }
   if (action === "finalize") { const ok = await confirmDialog("Tandai transaksi sebagai selesai?", { title: "Selesai", okText: "✅ Selesai", cancelText: "✖ Batal" }); if (!ok) return; await window.posApi.finalizeSale(saleId); await reloadSales(); toastMsg("Transaksi selesai."); return; }
   if (action === "delete") { const ok = await confirmDialog("Hapus riwayat transaksi ini? Stok produk akan dikembalikan."); if (!ok) return; await window.posApi.deleteSale(saleId); await reloadProducts(); await reloadSales(); toastMsg("Riwayat transaksi dihapus."); return; }
   if (action === "edit") {

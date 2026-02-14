@@ -651,7 +651,9 @@ function buildSalesFilterClause(filter = {}) {
   const params = [];
   let where = "";
 
-  if (type === "date") {
+  if (type === "daily") {
+    where = "WHERE date(datetime(s.created_at, 'localtime')) = date('now', 'localtime')";
+  } else if (type === "date") {
     const date = String(filter.date || "").trim();
     if (date) {
       where = "WHERE date(datetime(s.created_at, 'localtime')) = date(?)";
