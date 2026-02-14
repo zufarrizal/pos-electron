@@ -233,7 +233,7 @@
           </label>
           <label>
             Bayar
-            <input id="payment-input" type="number" min="0" step="1" value="0" />
+            <input id="payment-input" type="number" min="0" step="1" placeholder="Masukkan nominal bayar" />
           </label>
           <button id="cancel-sale-edit" type="button" class="secondary" style="display:none">
             ↩ Batal
@@ -304,17 +304,19 @@
           </div>
         </form>
 
-        <table id="users-table">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Role</th>
-              <th>Dibuat</th>
-              <th>Aksi</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <div class="table-wrap">
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Dibuat</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </section>
 
       <section id="panel-settings" class="card tab-panel admin-only" role="tabpanel" style="display:none">
@@ -347,6 +349,6 @@
     </div>
 
     <div id="toast"></div>
-    <script src="./renderer.js"></script>
+    <script type="module" src="./renderer.js"></script>
   </body>
 </html>

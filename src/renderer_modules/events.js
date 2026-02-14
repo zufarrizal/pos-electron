@@ -1,0 +1,496 @@
+﻿import {
+  $, refs, state, money,
+  isAdmin, toastMsg, friendlyError,
+  showErr, clearErr, clearAllErr,
+  switchTab, showLogin, showApp,
+  renderAppConfig,
+  resetSaleEditMode
+} from "./shared.js";
+import {
+  renderProductsTable,
+  renderProductPicker,
+  findProductBySearch,
+  renderCart
+} from "./render.js";
+import {
+  reloadProducts,
+  reloadSales,
+  reloadUsers,
+  reloadDashboard,
+  reloadAll,
+  confirmDialog
+} from "./services.js";
+
+function isResetAdminShortcut(event) {
+  const key = String(event.key || "").toLowerCase();
+  const code = String(event.code || "");
+  const hasModifier = event.ctrlKey || event.metaKey;
+  return hasModifier && event.shiftKey && (key === "p" || code === "KeyP");
+}
+
+function bindEvents() {
+  refs.loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErr("login");
+    try {
+      state.currentUser = await window.posApi.login({
+        username: $("#login-username").value,
+        password: $("#login-password").value
+      });
+      $("#login-password").value = "";
+      showApp();
+      switchTab(isAdmin() ? "panel-dashboard" : "panel-produk");
+      await reloadAll();
+      toastMsg("Login berhasil.");
+    } catch (error) {
+      const m = friendlyError(error, "Login gagal.");
+      showErr("login", m);
+      toastMsg(m);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const onLoginScreen = refs.loginScreen.style.display !== "none";
+    if (!onLoginScreen) return;
+    if (isResetAdminShortcut(event)) {
+      event.preventDefault();
+      const show = refs.loginShortcutActions.style.display === "none";
+      refs.loginShortcutActions.style.display = show ? "" : "none";
+      toastMsg(show ? "Shortcut aktif: tombol reset admin ditampilkan." : "Shortcut disembunyikan.");
+    }
+  });
+
+  refs.loginResetAdminBtn?.addEventListener("click", async () => {
+    const ok = await confirmDialog("Reset password ADMIN menjadi 7890?", {
+      title: "Reset",
+      okText: "🔁 Reset",
+      cancelText: "✖ Batal"
+    });
+    if (!ok) return;
+
+    try {
+      await window.posApi.resetAdminPasswordQuick();
+      showErr("login", "Password ADMIN direset ke 7890.");
+      toastMsg("Password ADMIN direset.");
+    } catch (error) {
+      const m = friendlyError(error, "Gagal reset password ADMIN.");
+      showErr("login", m);
+      toastMsg(m);
+    }
+  });
+
+  $("#logout-btn").addEventListener("click", async () => {
+    await window.posApi.logout();
+    state.currentUser = null;
+    state.cart = [];
+    resetSaleEditMode();
+    clearAllErr();
+    showLogin();
+    toastMsg("Logout berhasil.");
+  });
+
+  $("#fullscreen-btn").addEventListener("click", async () => {
+    try {
+      const fs = await window.posApi.toggleFullscreen();
+      $("#fullscreen-btn").textContent = fs ? "🗗 Normal" : "🖥 Layar";
+    } catch (e) {
+      toastMsg(friendlyError(e, "Gagal fullscreen."));
+    }
+  });
+
+  $("#reset-admin-password-btn").addEventListener("click", async () => {
+    const ok = await confirmDialog("Reset password ADMIN menjadi 7890?", { title: "Reset", okText: "🔁 Reset", cancelText: "✖ Batal" });
+    if (!ok) return;
+    try {
+      await window.posApi.resetAdminPassword();
+      toastMsg("Password ADMIN direset.");
+    } catch (e) {
+      toastMsg(friendlyError(e, "Gagal reset."));
+    }
+  });
+
+  $("#product-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErr("product");
+    const payload = {
+      id: Number($("#product-id").value || 0),
+      sku: $("#sku").value,
+      name: $("#name").value,
+      price: Number($("#price").value || 0),
+      stock: Number($("#stock").value || 0)
+    };
+
+    try {
+      if (payload.id) await window.posApi.updateProduct(payload);
+      else await window.posApi.createProduct(payload);
+      $("#product-form").reset();
+      $("#product-id").value = "";
+      await reloadProducts();
+      toastMsg("Produk disimpan.");
+    } catch (error) {
+      const m = friendlyError(error, "Gagal simpan produk.");
+      showErr("product", m);
+      toastMsg(m);
+    }
+  });
+
+  $("#cancel-edit").addEventListener("click", () => {
+    $("#product-form").reset();
+    $("#product-id").value = "";
+  });
+
+  $("#product-table-search").addEventListener("input", renderProductsTable);
+
+  $("#products-table tbody").addEventListener("click", async (e) => {
+    const b = e.target.closest("button");
+    if (!b) return;
+    const id = Number(b.dataset.id);
+    const p = state.products.find((x) => x.id === id);
+    if (!p) return;
+
+    if (b.dataset.action === "edit") {
+      $("#product-id").value = p.id;
+      $("#sku").value = p.sku;
+      $("#name").value = p.name;
+      $("#price").value = p.price;
+      $("#stock").value = p.stock;
+      return;
+    }
+
+    const ok = await confirmDialog(`Hapus produk "${p.name}"?`);
+    if (!ok) return;
+
+    try {
+      await window.posApi.deleteProduct(id);
+      await reloadProducts();
+      toastMsg("Produk dihapus.");
+    } catch (error) {
+      const m = friendlyError(error, "Gagal hapus produk.");
+      showErr("product", m);
+      toastMsg(m);
+    }
+  });
+
+  $("#product-search").addEventListener("input", () => {
+    renderProductPicker();
+    const p = findProductBySearch($("#product-search").value);
+    $("#selected-product").textContent = p
+      ? `Dipilih: ${p.sku} | ${p.name} | ${money.format(p.price)} | stok ${p.stock}`
+      : "";
+  });
+
+  refs.productPickerList?.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-product-id]");
+    if (!b) return;
+    const p = state.products.find((x) => x.id === Number(b.dataset.productId));
+    if (!p) return;
+    $("#product-search").value = p.sku;
+    $("#selected-product").textContent = `Dipilih: ${p.sku} | ${p.name} | ${money.format(p.price)} | stok ${p.stock}`;
+  });
+
+  $("#add-cart").addEventListener("click", () => {
+    clearErr("transaction");
+    const p = findProductBySearch($("#product-search").value);
+    const qty = Number($("#qty-input").value || 0);
+
+    if (!p || !Number.isInteger(qty) || qty <= 0) {
+      const m = "Pilih produk dan qty valid.";
+      showErr("transaction", m);
+      toastMsg(m);
+      return;
+    }
+
+    const currentQty = state.cart.filter((x) => x.productId === p.id).reduce((s, x) => s + x.qty, 0);
+    const allowedStock = p.stock + Number(state.editBaseQtyByProduct[p.id] || 0);
+    if (currentQty + qty > allowedStock) {
+      const m = `Stok ${p.name} tidak mencukupi.`;
+      showErr("transaction", m);
+      toastMsg(m);
+      return;
+    }
+
+    const ex = state.cart.find((x) => x.productId === p.id);
+    if (ex) ex.qty += qty;
+    else state.cart.push({ productId: p.id, name: p.name, price: p.price, qty });
+
+    $("#qty-input").value = "1";
+    $("#product-search").value = "";
+    $("#selected-product").textContent = "";
+    renderProductPicker();
+    renderCart();
+  });
+
+  $("#cart-table tbody").addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-remove]");
+    if (!b) return;
+    state.cart = state.cart.filter((x) => x.productId !== Number(b.dataset.remove));
+    renderCart();
+  });
+
+  $("#checkout").addEventListener("click", async () => {
+    clearErr("transaction");
+    const items = state.cart.map((x) => ({ productId: x.productId, qty: x.qty }));
+    const payment = Number($("#payment-input").value || 0);
+    const paymentMethod = String(refs.paymentMethodInput?.value || "tunai");
+
+    try {
+      const result = state.editingSaleId
+        ? await window.posApi.updateSale({ saleId: state.editingSaleId, items, payment, paymentMethod })
+        : await window.posApi.createSale({ items, payment, paymentMethod });
+
+      $("#result-box").style.display = "block";
+      const methodLabel = paymentMethod === "qris" ? "QRIS" : "Tunai";
+      $("#result-box").innerHTML = `<strong>${state.editingSaleId ? "Transaksi berhasil diubah" : "Transaksi berhasil"}</strong><br>Invoice: ${result.invoiceNo}<br>Metode: ${methodLabel}<br>Total: ${money.format(result.total)}<br>Bayar: ${money.format(result.payment)}<br>Kembalian: ${money.format(result.changeAmount)}<br><button type="button" class="secondary" data-result-action="print" data-sale-id="${result.saleId}">🖨 Print</button>`;
+
+      state.cart = [];
+      $("#payment-input").value = "";
+      resetSaleEditMode();
+      renderCart();
+      await reloadProducts();
+      await reloadSales();
+    } catch (error) {
+      const m = friendlyError(error, "Simpan transaksi gagal.");
+      showErr("transaction", m);
+      toastMsg(m);
+    }
+  });
+
+  $("#result-box").addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-result-action='print']");
+    if (!btn) return;
+    const saleId = Number(btn.dataset.saleId || 0);
+    if (!saleId) return;
+    try {
+      await window.posApi.printSaleInvoice(saleId);
+      toastMsg("Invoice dikirim ke printer.");
+    } catch (error) {
+      const m = friendlyError(error, "Gagal print invoice.");
+      showErr("transaction", m);
+      toastMsg(m);
+    }
+  });
+
+  $("#cancel-sale-edit").addEventListener("click", () => {
+    resetSaleEditMode();
+    state.cart = [];
+    $("#payment-input").value = "";
+    clearErr("transaction");
+    renderCart();
+  });
+
+  $("#history-filter-type").addEventListener("change", () => {
+    $("#history-filter-date").style.display = $("#history-filter-type").value === "date" ? "" : "none";
+    $("#history-filter-month").style.display = $("#history-filter-type").value === "month" ? "" : "none";
+  });
+
+  $("#apply-history-filter").addEventListener("click", async () => {
+    clearErr("history");
+    try {
+      const t = $("#history-filter-type").value;
+      const d = $("#history-filter-date").value;
+      const m = $("#history-filter-month").value;
+      if (t === "date" && !d) throw new Error("Pilih tanggal terlebih dahulu.");
+      if (t === "month" && !m) throw new Error("Pilih bulan terlebih dahulu.");
+      state.salesFilter = { type: t, date: d, month: m };
+      await reloadSales();
+    } catch (error) {
+      const msg = friendlyError(error, "Gagal menerapkan filter.");
+      showErr("history", msg);
+      toastMsg(msg);
+    }
+  });
+
+  $("#reset-history-filter").addEventListener("click", async () => {
+    $("#history-filter-type").value = "daily";
+    $("#history-filter-date").value = "";
+    $("#history-filter-month").value = "";
+    state.salesFilter = { type: "daily", date: "", month: "" };
+    $("#history-filter-date").style.display = "none";
+    $("#history-filter-month").style.display = "none";
+    await reloadSales();
+  });
+
+  $("#export-history-excel").addEventListener("click", async () => {
+    try {
+      const r = await window.posApi.exportSales(state.salesFilter);
+      toastMsg(r?.canceled ? "Export dibatalkan." : `Export berhasil (${r.count} transaksi).`);
+    } catch (e) {
+      const m = friendlyError(e, "Gagal export Excel.");
+      showErr("history", m);
+      toastMsg(m);
+    }
+  });
+
+  $("#sales-table tbody").addEventListener("click", async (e) => {
+    const b = e.target.closest("button[data-sale-action]");
+    if (!b) return;
+    const action = b.dataset.saleAction;
+    const saleId = Number(b.dataset.saleId);
+    if (!saleId) return;
+
+    if (action === "print") {
+      try {
+        await window.posApi.printSaleInvoice(saleId);
+        toastMsg("Invoice dikirim ke printer.");
+      } catch (error) {
+        const m = friendlyError(error, "Gagal print invoice.");
+        showErr("history", m);
+        toastMsg(m);
+      }
+      return;
+    }
+
+    if (action === "finalize") {
+      const ok = await confirmDialog("Tandai transaksi sebagai selesai?", { title: "Selesai", okText: "✅ Selesai", cancelText: "✖ Batal" });
+      if (!ok) return;
+      await window.posApi.finalizeSale(saleId);
+      await reloadSales();
+      toastMsg("Transaksi selesai.");
+      return;
+    }
+
+    if (action === "delete") {
+      const ok = await confirmDialog("Hapus riwayat transaksi ini? Stok produk akan dikembalikan.");
+      if (!ok) return;
+      await window.posApi.deleteSale(saleId);
+      await reloadProducts();
+      await reloadSales();
+      toastMsg("Riwayat transaksi dihapus.");
+      return;
+    }
+
+    if (action === "edit") {
+      try {
+        const sale = await window.posApi.getSaleById(saleId);
+        switchTab("panel-transaksi");
+        state.editingSaleId = sale.id;
+        $("#checkout").textContent = "💾 Simpan";
+        $("#cancel-sale-edit").style.display = "block";
+        $("#sale-mode").textContent = `Mode edit: ${sale.invoiceNo}`;
+        $("#payment-input").value = String(sale.payment);
+        if (refs.paymentMethodInput) refs.paymentMethodInput.value = sale.paymentMethod || "tunai";
+
+        state.editBaseQtyByProduct = {};
+        sale.items.forEach((x) => {
+          state.editBaseQtyByProduct[x.productId] = Number(state.editBaseQtyByProduct[x.productId] || 0) + x.qty;
+        });
+
+        state.cart = sale.items.map((x) => {
+          const p = state.products.find((z) => z.id === x.productId);
+          return { productId: x.productId, name: p ? p.name : x.name, price: p ? p.price : x.price, qty: x.qty };
+        });
+        renderCart();
+        toastMsg(`Transaksi ${sale.invoiceNo} siap diubah.`);
+      } catch (error) {
+        const m = friendlyError(error, "Gagal memuat transaksi.");
+        showErr("history", m);
+        toastMsg(m);
+      }
+    }
+  });
+
+  $("#dashboard-trend-mode").addEventListener("change", async () => {
+    state.dashboardTrendMode = $("#dashboard-trend-mode").value;
+    await reloadDashboard();
+  });
+
+  $("#dashboard-best-limit").addEventListener("change", async () => {
+    state.dashboardBestLimit = Number($("#dashboard-best-limit").value || 10);
+    await reloadDashboard();
+  });
+
+  $("#user-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      id: Number($("#user-id").value || 0),
+      username: $("#user-username").value,
+      role: $("#user-role").value,
+      password: $("#user-password").value
+    };
+
+    try {
+      if (payload.id) await window.posApi.updateUser(payload);
+      else await window.posApi.createUser(payload);
+      $("#user-form").reset();
+      $("#user-id").value = "";
+      await reloadUsers();
+      toastMsg("User disimpan.");
+    } catch (error) {
+      toastMsg(friendlyError(error, "Gagal simpan user."));
+    }
+  });
+
+  $("#cancel-user-edit").addEventListener("click", () => {
+    $("#user-form").reset();
+    $("#user-id").value = "";
+  });
+
+  $("#users-table tbody").addEventListener("click", async (e) => {
+    const b = e.target.closest("button[data-user-action]");
+    if (!b) return;
+    const user = state.users.find((x) => x.id === Number(b.dataset.userId));
+    if (!user) return;
+
+    if (b.dataset.userAction === "edit") {
+      $("#user-id").value = user.id;
+      $("#user-username").value = user.username;
+      $("#user-role").value = user.role;
+      $("#user-password").value = "";
+      return;
+    }
+
+    const ok = await confirmDialog(`Hapus user "${user.username}"?`);
+    if (!ok) return;
+    try {
+      await window.posApi.deleteUser(user.id);
+      await reloadUsers();
+      toastMsg("User dihapus.");
+    } catch (error) {
+      toastMsg(friendlyError(error, "Gagal menghapus user."));
+    }
+  });
+
+  $("#app-config-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    try {
+      state.appConfig = await window.posApi.updateAppConfig({
+        appName: $("#app-config-name").value,
+        appDescription: $("#app-config-description").value
+      });
+      renderAppConfig();
+      toastMsg("Pengaturan aplikasi disimpan.");
+    } catch (error) {
+      toastMsg(friendlyError(error, "Gagal menyimpan pengaturan aplikasi."));
+    }
+  });
+
+  refs.tabButtons.forEach((b) => b.addEventListener("click", () => {
+    if (b.style.display === "none") return;
+    switchTab(b.dataset.tabTarget);
+  }));
+}
+
+async function bootstrap() {
+  try {
+    state.appConfig = await window.posApi.getAppConfig();
+    renderAppConfig();
+    $("#history-filter-date").style.display = "none";
+    $("#history-filter-month").style.display = "none";
+
+    const session = await window.posApi.getSession();
+    if (!session) {
+      showLogin();
+      return;
+    }
+
+    state.currentUser = session;
+    showApp();
+    switchTab(isAdmin() ? "panel-dashboard" : "panel-produk");
+    await reloadAll();
+  } catch (error) {
+    showLogin();
+    toastMsg(friendlyError(error, "Gagal memuat aplikasi."));
+  }
+}
+
+export { bindEvents, bootstrap };
