@@ -1,57 +1,71 @@
-﻿# POS Kasir Electron + SQLite
+﻿# POS Kasir (Electron + SQLite)
 
-Aplikasi POS/kasir desktop berbasis Electron + SQLite dengan fitur transaksi, manajemen produk/pengguna, dasbor admin, cetak invoice, dan ekspor riwayat ke Excel.
+Aplikasi kasir desktop berbasis Electron dan SQLite untuk operasional restoran/ritel skala kecil-menengah. Proyek ini mendukung manajemen produk, transaksi kasir, riwayat transaksi, cetak invoice, ekspor Excel, serta dasbor admin.
 
-## Ringkasan Fitur
+## Gambaran Umum
 
-- Login multi-peran: `admin` dan `pengguna`
-- Tab terpisah: Dasbor, Produk, Transaksi, Riwayat, Pengguna, Pengaturan
-- CRUD Produk
-- CRUD Pengguna (khusus admin)
-- Transaksi kasir dengan pencarian SKU/nama, daftar pilihan produk yang bisa di-scroll, dan validasi stok
-- Rekomendasi produk di tab Transaksi (klik untuk pilih cepat), dengan filter periode `Harian/Mingguan/Bulanan/Tahunan`
-- Filter jumlah rekomendasi transaksi: `4/8/12/16/20 Teratas`
-- Klik produk di daftar atau rekomendasi akan langsung menambah kuantitas (`qty +1`) ke keranjang
-- Kuantitas (`qty`) item di tabel transaksi bisa diubah langsung
-- Metode pembayaran: `Tunai` dan `QRIS`
-- Edit transaksi dari riwayat
-- Finalisasi transaksi (`Selesai`) untuk mengunci transaksi
-- Admin tetap bisa edit/hapus riwayat transaksi
-- Cetak invoice dari riwayat transaksi
-- Cetak invoice langsung dari notifikasi pembayaran
-- Filter riwayat transaksi: Harian, Semua, Per Tanggal, Per Bulan
-- Tombol reset filter riwayat kembali ke mode Harian
-- Export riwayat transaksi ke Excel
-- Ringkasan riwayat: jumlah transaksi, total penjualan, total pembayaran, total kembalian, total tunai, total QRIS
-- Dasbor admin:
-1. Total transaksi harian/mingguan/bulanan
-2. Total pendapatan harian/mingguan/bulanan
-3. Total produk terjual harian/mingguan/bulanan
-4. Total pengguna
-5. Total produk (tersedia/kosong)
-6. Grafik pendapatan (harian/mingguan/bulanan) bentuk kurva
-7. Produk terlaris dengan filter periode `Harian/Mingguan/Bulanan/Tahunan`
-8. Filter jumlah produk terlaris: `5/10/20/50/100 Teratas`
-- Mode layar penuh
-- Pengaturan nama & deskripsi aplikasi (admin)
+POS Kasir dirancang untuk penggunaan lokal (offline-first) dengan database SQLite. Fokus utama aplikasi adalah:
+
+- Proses transaksi cepat dan stabil.
+- Kontrol akses berdasarkan peran (`admin` dan `pengguna`).
+- Pelacakan penjualan dan ringkasan performa bisnis.
+- Kemudahan backup/restore melalui file database lokal.
+
+## Fitur Utama
+
+### 1. Autentikasi dan Otorisasi
+- Login multi-peran: `admin` dan `pengguna`.
+- Hak akses dibatasi per peran.
+- Reset akun admin via shortcut login (`Ctrl + Shift + P`) berbasis `users.id = 1`.
+
+### 2. Manajemen Produk
+- CRUD produk (SKU, nama, harga, stok).
+- Pencarian produk cepat pada tabel produk.
+- Validasi stok saat transaksi.
+
+### 3. Transaksi Kasir
+- Input produk via pencarian SKU/nama.
+- Daftar rekomendasi produk dengan filter periode:
+  - Harian, Mingguan, Bulanan, Tahunan.
+- Filter jumlah rekomendasi:
+  - `4`, `8`, `12`, `16`, `20` teratas.
+- Klik produk pada daftar/rekomendasi langsung menambah item ke keranjang (`qty +1`).
+- Kuantitas item di tabel transaksi dapat diubah langsung.
+- Metode pembayaran: `Tunai` dan `QRIS`.
+- Cetak invoice langsung setelah pembayaran.
+
+### 4. Riwayat Transaksi
+- Filter riwayat:
+  - Harian, Semua, Per Tanggal, Per Bulan.
+- Ringkasan metrik riwayat:
+  - Jumlah transaksi, total penjualan, total pembayaran, total kembalian, total tunai, total QRIS.
+- Edit transaksi (tergantung status/finalisasi dan role).
+- Finalisasi transaksi (`Selesai`) untuk mengunci transaksi.
+- Hapus riwayat transaksi khusus admin.
+- Cetak invoice dari riwayat.
+- Ekspor riwayat ke Excel sesuai filter aktif.
+
+### 5. Dasbor Admin
+- KPI transaksi, pendapatan, dan produk terjual (harian/mingguan/bulanan).
+- Total pengguna.
+- Total produk (tersedia/kosong).
+- Grafik pendapatan (kurva): harian/mingguan/bulanan.
+- Produk terlaris dengan:
+  - filter periode (harian/mingguan/bulanan/tahunan),
+  - jumlah top produk (`5/10/20/50/100`).
+
+### 6. Pengaturan Aplikasi
+- Ubah nama aplikasi dan deskripsi aplikasi (admin).
+- Mode layar penuh.
 
 ## Akun Default
 
-1. `ADMIN / 7890` (role: `admin`)
-2. `kasir / 1234` (role: `pengguna`)
+- `ADMIN / 7890` (role: `admin`)
+- `kasir / 1234` (role: `pengguna`)
 
-## Shortcut Reset Admin (Halaman Login)
+## Format Nomor Invoice
 
-- Tekan `Ctrl + Shift + P` di halaman masuk untuk menampilkan tombol atur ulang admin.
-- Tombol reset akan mengatur ulang akun admin berdasarkan `users.id = 1`.
-- Hasil reset:
-1. `username` user id 1 menjadi `ADMIN`
-2. `password` user id 1 menjadi `7890`
-3. `role` user id 1 menjadi `admin`
-
-## Format Invoice
-
-Format invoice saat ini:
+Format:
 
 `INV/YY/MM/DD/xxxxx`
 
@@ -59,19 +73,15 @@ Contoh:
 
 `INV/26/02/14/00001`
 
-Nomor urut `xxxxx` di-reset per hari.
+Nomor urut `xxxxx` di-reset setiap hari.
 
-## Seed Data Produk
-
-Saat database produk kosong, sistem akan otomatis mengisi **50 menu restoran Indonesia** dengan prefix SKU `RST-`.
-
-## Tech Stack
+## Teknologi
 
 - Electron
 - better-sqlite3 (SQLite)
-- xlsx (export Excel)
+- xlsx
 
-## Struktur Project
+## Struktur Proyek
 
 ```text
 pos-electron/
@@ -93,9 +103,13 @@ pos-electron/
     `-- reset_data_keep_users.js
 ```
 
-## Cara Menjalankan
+## Persyaratan Sistem
 
-Pastikan menjalankan command di folder project yang berisi `package.json`.
+- Node.js LTS
+- npm
+- Windows/macOS/Linux (fokus pengujian: Windows)
+
+## Instalasi dan Menjalankan Aplikasi
 
 ```bash
 cd C:\Users\Admin\Documents\Github\pos-electron
@@ -109,37 +123,60 @@ Database SQLite disimpan di:
 
 `%APPDATA%\pos-electron\pos.sqlite`
 
-## Script Utilitas
+## Skrip Utilitas
 
-- Seed produk restoran:
+### Seed produk restoran
 ```bash
 npx electron scripts/seed_restaurant_products.js
 ```
 
-- Hapus semua data kecuali user:
+### Hapus semua data kecuali pengguna
 ```bash
 npx electron scripts/reset_data_keep_users.js
 ```
 
+## Seed Otomatis Produk
+
+Jika tabel produk kosong, aplikasi otomatis menambahkan 50 menu restoran Indonesia dengan prefix SKU `RST-`.
+
 ## Aturan Akses
 
-- `admin`:
-1. Akses dashboard
-2. Kelola pengguna
-3. Kelola pengaturan aplikasi
-4. Hapus riwayat transaksi
-5. Edit transaksi yang sudah final
-6. Atur ulang kata sandi ADMIN ke `7890` (hanya dari shortcut halaman masuk)
+### Admin
+1. Akses dasbor.
+2. Kelola pengguna.
+3. Kelola pengaturan aplikasi.
+4. Hapus riwayat transaksi.
+5. Edit transaksi final.
+6. Atur ulang sandi admin via shortcut login.
 
-- `pengguna`:
-1. Transaksi kasir
-2. Kelola produk/transaksi sesuai menu yang tersedia
-3. Tidak bisa hapus riwayat transaksi
+### Pengguna
+1. Melakukan transaksi kasir.
+2. Mengelola produk/transaksi sesuai menu tersedia.
+3. Tidak dapat menghapus riwayat transaksi.
 
-## Catatan
+## Troubleshooting
 
-- Jika data produk kosong setelah reset, seed akan otomatis masuk saat aplikasi dijalankan.
-- Export Excel mengikuti filter riwayat yang aktif.
-- Riwayat transaksi default menampilkan data harian untuk performa lebih ringan.
-- Jika shortcut reset admin tidak muncul, pastikan fokus ada di jendela masuk lalu tekan `Ctrl + Shift + P` sekali lagi.
-- Frontend renderer memakai ES Module (`<script type="module">`) dan sudah dipisah per tanggung jawab agar lebih mudah maintenance.
+### 1. Shortcut reset admin tidak muncul
+- Pastikan fokus berada di halaman masuk.
+- Tekan `Ctrl + Shift + P`.
+
+### 2. Riwayat terasa berat
+- Gunakan mode filter `Harian` (default) untuk beban data lebih ringan.
+
+### 3. Error modul native `better-sqlite3`
+- Jalankan ulang instalasi dependensi di folder proyek:
+```bash
+npm install
+npm run rebuild
+```
+
+## Catatan Pengembangan
+
+- Frontend menggunakan ES Module (`<script type="module">`).
+- Kode renderer dipisah per tanggung jawab (`shared`, `render`, `services`, `events`) untuk kemudahan maintenance.
+
+## Rekomendasi Lanjutan
+
+- Tambahkan hashing password (saat ini masih plain text untuk kebutuhan lokal/dev).
+- Tambahkan backup/restore database dari UI.
+- Tambahkan unit test untuk fungsi transaksi dan perhitungan laporan.
